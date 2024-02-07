@@ -202,6 +202,9 @@ int initialize_Winsock()
 
 	// Create a receiver socket to receive datagrams - RECV
 	RecvSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	unsigned long ul = 1;
+	int           nRet;
+	nRet = ioctlsocket(RecvSocket, FIONBIO, (unsigned long*)&ul);
 
 	//struct timeval read_timeout;
 	//read_timeout.tv_sec = 0;
@@ -266,6 +269,7 @@ int initialize_Winsock()
 
 float UDP_q[7];
 float des_q[7];
+
 
 void UDP_send_recv_v2(float* input_pos, float* UDP_q)
 {
@@ -739,7 +743,7 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 	k_api::GripperCyclic::Feedback m_gripper_feedback;
 
 	std::future<k_api::BaseCyclic::Feedback> base_feedback_async;
-
+	
 	auto servoing_mode = k_api::Base::ServoingModeInformation();
 
 	int i = 0;
@@ -815,7 +819,6 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 		num_TOSEND[5] = 0;
 		num_TOSEND[6] = 0;
 
-		void UDP_send(float* num_TOSEND);
 
 		//Realtime control loop. Press "Q" key to exit loop.
 		while (!(GetKeyState('Q') & 0x8000))
@@ -824,7 +827,9 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 			if (now - last >= 1000)
 			{
 				//-----------------------------------------------------------------------------//
-				base_feedback = base_feedback_async.get();
+				base_feedback = base_feedback_async.get(); // blocking call
+				
+
 
 				if (timer_count % 1 == 0 && data_count < DURATION * 1000 && logging == 1)
 				{
@@ -891,8 +896,6 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 					}
 				}
 				
-				//myGRIP_POS1[data_count] = m_gripper_feedback.motor(0).position();
-				//myGRIP_VEL1[data_count] = m_gripper_feedback.motor(0).velocity();
 
 				UDP_send_recv_v2(num_TOSEND, UDP_q);
 				std::cout << "q1 =" << UDP_q[0] << " q2 =" << UDP_q[1] << " q3 =" << UDP_q[2] << " q4 =" << UDP_q[3] << " q5 =" << UDP_q[4] << " q6 =" << UDP_q[5] << " q7 =" << UDP_q[6] << std::endl;
@@ -912,7 +915,7 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 				try
 				{
 					std::cout << "At Refresh_async" << std::endl;
-					base_feedback_async = base_cyclic->Refresh_async(base_command, 0);
+					base_feedback_async = base_cyclic->Refresh_async(base_command, 0); // Don't move from here
 				}
 				catch (k_api::KDetailedException& ex)
 				{
