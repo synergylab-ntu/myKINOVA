@@ -1064,10 +1064,10 @@ int main()
 	auto error_callback = [](k_api::KError err) { cout << "_________ callback error _________" << err.toString(); };
 
 	// ### TO DO ###: Change to correct IP
-	KINOVA* slave_tcp = new KINOVA("192.180.0.107", 10000);
+	KINOVA* slave_tcp = new KINOVA(ROBOT_IP, 10000);
 	slave_tcp->Init_TCP();
 
-	KINOVA* slave_udp = new KINOVA("192.180.0.107", 10001);
+	KINOVA* slave_udp = new KINOVA(ROBOT_IP, 10001);
 	slave_udp->Init_UDP();
 
 	std::cout << "Creating Client" << std::endl;
