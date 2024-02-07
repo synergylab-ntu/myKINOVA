@@ -1,3 +1,4 @@
+// Order of the include statements matters - especially when utilising UDP
 #include <Logging.h>
 #include <KinovaInit.h>
 
@@ -35,14 +36,114 @@
 #include <windows.h>
 #include <process.h>
 
-// STATEMENTS to include so you get exp_folder from exp_settings.txt
-std::string exp_folder;
-char EXEPATH[MAX_PATH];
-
 // Windows functions to get executable paths
 #include <Shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
 
+// Includes for UDP - start
+#define WIN32_LEAN_AND_MEAN
+
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#include <stdio.h>
+
+// Link with ws2_32.lib
+#pragma comment(lib, "Ws2_32.lib")
+
+#define DEFAULT_BUFLEN 512
+
+// Include for RECV
+#ifndef UNICODE
+#define UNICODE
+#endif
+
+#include <iostream>
+
+#include <sys/types.h>
+// Includes for UDP - end
+
+#if defined(_MSC_VER)
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
+// Includes for unix_epoch - start
+#include <time.h>
+#include <ctime>
+#include <chrono>
+// Includes for unix_epoch - end
+
+// defining the unix_epoch global variable
+using namespace std::chrono;
+int64_t timestamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
+
+// Definitions
+namespace k_api = Kinova::Api;
+
+// Kinova UDP stream ports
+#define SEND_PORT 27015
+#define RECV_PORT 27016
+std::string ROBOT_IP;
+
+// Misc Kinova params
+#define ACTUATOR_COUNT 7
+#define DURATION 400// Network timeout (seconds)
+
+constexpr auto TIMEOUT_DURATION = std::chrono::seconds(20);
+float time_duration = DURATION; // Duration of the example (seconds)
+
+// data logging global variables
+double time_log[DURATION * 1000]{};
+int64_t unix_epoch[DURATION * 1000]{};
+float UDP_q_log[DURATION * 1000][ACTUATOR_COUNT]{};
+float ext_tau_log[DURATION * 1000][ACTUATOR_COUNT]{};
+k_api::BaseCyclic::Feedback data_log[DURATION * 1000]{};
+
+// UDP global variables
+float UDP_q[ACTUATOR_COUNT];
+float des_q[ACTUATOR_COUNT];
+
+//// Gripper global variables
+//float myGRIP_POS1[DURATION * 1000]{}, myGRIP_POS2[DURATION * 1000]{};
+//float myGRIP_VEL1[DURATION * 1000]{}, myGRIP_VEL2[DURATION * 1000]{};
+
+int focus = 0;
+
+// Set up UDP - starts
+//----------------------
+// Declare and initialize variables - SEND
+WSADATA wsaData;
+int iResult;
+
+SOCKET ConnectSocket = INVALID_SOCKET;
+struct sockaddr_in clientService;
+//int SenderAddrSize = sizeof(clientService);
+
+char* sendbuf = "this is a test";
+char recvbuf[DEFAULT_BUFLEN];
+int recvbuflen = DEFAULT_BUFLEN;
+
+// Declare and initialize variables - RECV
+int iResult2 = 0;
+
+SOCKET RecvSocket;
+struct sockaddr_in RecvAddr;
+
+char RecvBuf[1024];
+int BufLen = 1024;
+
+struct sockaddr_in SenderAddr;
+int SenderAddrSize = sizeof(SenderAddr);
+
+int ret, iVal = 1;
+unsigned int  sz = sizeof(iVal);
+// Set up UDP - ends
+
+
+// STATEMENTS to include so you get exp_folder from exp_settings.txt - start
+std::string exp_folder;
+char EXEPATH[MAX_PATH];
 
 TCHAR* GetEXEpath()
 {
@@ -78,7 +179,6 @@ void replace_all(
 	buf.append(s, prevPos, s.size() - prevPos);
 	s.swap(buf);
 }
-
 
 void get_exp_folder_v2()
 {
@@ -119,68 +219,9 @@ void get_exp_folder_v2()
 	std::cout << exp_folder << std::endl;
 
 }
-// STATEMENTS to include so you get exp_folder from exp_settings.txt
+// STATEMENTS to include so you get exp_folder from exp_settings.txt - end
 
-
-// Includes for UDP - start
-#define WIN32_LEAN_AND_MEAN
-
-#include <winsock2.h>
-#include <Ws2tcpip.h>
-#include <stdio.h>
-
-// Link with ws2_32.lib
-#pragma comment(lib, "Ws2_32.lib")
-
-#define DEFAULT_BUFLEN 512
-#define SEND_PORT 27015
-#define RECV_PORT 27016
-std::string ROBOT_IP;
-
-// Include for RECV
-#ifndef UNICODE
-#define UNICODE
-#endif
-
-#include <iostream>
-
-#include <sys/types.h>
-// Includes for UDP - end
-
-
-
-// Set up UDP - starts
-//----------------------
-// Declare and initialize variables - SEND
-WSADATA wsaData;
-int iResult;
-
-SOCKET ConnectSocket = INVALID_SOCKET;
-struct sockaddr_in clientService;
-//int SenderAddrSize = sizeof(clientService);
-
-char* sendbuf = "this is a test";
-char recvbuf[DEFAULT_BUFLEN];
-int recvbuflen = DEFAULT_BUFLEN;
-
-// Declare and initialize variables - RECV
-int iResult2 = 0;
-
-SOCKET RecvSocket;
-struct sockaddr_in RecvAddr;
-
-char RecvBuf[1024];
-int BufLen = 1024;
-
-struct sockaddr_in SenderAddr;
-int SenderAddrSize = sizeof(SenderAddr);
-
-int ret, iVal = 1;
-unsigned int  sz = sizeof(iVal);
-// Set up UDP - ends
-
-
-
+// STATEMENTS to include for UDP - non-blocking - start
 int initialize_Winsock()
 {
 	//----------------------
@@ -267,42 +308,26 @@ int initialize_Winsock()
 
 }
 
-float UDP_q[7];
-float des_q[7];
-
-
 void UDP_send_recv_v2(float* input_pos, float* UDP_q)
 {
 	int delimiter_idx = 0;
-	//float UDP_q[7];
-
-	// Defining the UDP send
 	float num_TOSEND[7];
-	num_TOSEND[0] = input_pos[0];
-	num_TOSEND[1] = input_pos[1];
-	num_TOSEND[2] = input_pos[2];
-	num_TOSEND[3] = input_pos[3];
-	num_TOSEND[4] = input_pos[4];
-	num_TOSEND[5] = input_pos[5];
-	num_TOSEND[6] = input_pos[6];
 
-	//int num_TOSEND_idx = 0;
-	std::string sendbuf1;
-	std::string sendbuf2;
-	sendbuf2.append("q_start");
-	//= "STRING_TO_SEND:";
+	std::string UDPsendbuf;
+	UDPsendbuf.append("q_start"); // string to send
+
 	for (int num_TOSEND_idx = 0; num_TOSEND_idx < 7; num_TOSEND_idx++) {
-		sendbuf1 = std::to_string(num_TOSEND[num_TOSEND_idx]);
-		sendbuf2.append(sendbuf1);
-		sendbuf2.append("||");
+		num_TOSEND[num_TOSEND_idx] = input_pos[num_TOSEND_idx];
+		UDPsendbuf.append(std::to_string(num_TOSEND[num_TOSEND_idx]));
+		UDPsendbuf.append("||");
+
 	}
-	sendbuf2.append("q_end");
+	UDPsendbuf.append("q_end");
 
 	// UDP part - start
-	const char* sendbuf3 = sendbuf2.c_str();
 	wprintf(L"Sending datagrams...\n");
 
-	iResult = send(ConnectSocket, sendbuf3, (int)strlen(sendbuf3), 0);
+	iResult = send(ConnectSocket, UDPsendbuf.c_str(), (int)strlen(UDPsendbuf.c_str()), 0);
 	wprintf(L"datagrams sent...\n");
 	iResult2 = recvfrom(RecvSocket,
 		RecvBuf, BufLen, 0, (SOCKADDR*)&SenderAddr, &SenderAddrSize);
@@ -332,85 +357,12 @@ void UDP_send_recv_v2(float* input_pos, float* UDP_q)
 				break;
 			}
 		}
-
 		std::cout << "q1 =" << UDP_q[0] << " q2 =" << UDP_q[1] << " q3 =" << UDP_q[2] << " q4 =" << UDP_q[3] << " q5 =" << UDP_q[4] << " q6 =" << UDP_q[5] << " q7 =" << UDP_q[6] << std::endl;
-
 	}
-
 	// UDP part - end
 
 }
-
-void UDP_send(float* input_pos)
-{
-	int delimiter_idx = 0;
-
-	// Defining the UDP send
-	float num_TOSEND[7];
-	num_TOSEND[0] = input_pos[0];
-	num_TOSEND[1] = input_pos[1];
-	num_TOSEND[2] = input_pos[2];
-	num_TOSEND[3] = input_pos[3];
-	num_TOSEND[4] = input_pos[4];
-	num_TOSEND[5] = input_pos[5];
-	num_TOSEND[6] = input_pos[6];
-
-	//int num_TOSEND_idx = 0;
-	std::string sendbuf1;
-	std::string sendbuf2;
-	sendbuf2.append("q_start");
-	//= "STRING_TO_SEND:";
-	for (int num_TOSEND_idx = 0; num_TOSEND_idx < 7; num_TOSEND_idx++) {
-		sendbuf1 = std::to_string(num_TOSEND[num_TOSEND_idx]);
-		sendbuf2.append(sendbuf1);
-		sendbuf2.append("||");
-	}
-	sendbuf2.append("q_end");
-
-	// UDP part - start
-	const char* sendbuf3 = sendbuf2.c_str();
-	wprintf(L"Sending datagrams...\n");
-
-	iResult = send(ConnectSocket, sendbuf3, (int)strlen(sendbuf3), 0);
-	wprintf(L"datagrams sent...\n");
-}
-
-
-
-#if defined(_MSC_VER)
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
-
-#include <time.h>
-#include <ctime>
-
-#include <chrono>
-using namespace std::chrono;
-int64_t timestamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
-
-
-#define ACTUATOR_COUNT 7
-#define DURATION 400// Network timeout (seconds)
-constexpr auto TIMEOUT_DURATION = std::chrono::seconds(20);
-float time_duration = DURATION; // Duration of the example (seconds)
-namespace k_api = Kinova::Api;
-
-double time_log[DURATION * 1000]{};
-int64_t unix_epoch[DURATION * 1000]{};
-float UDP_q_log[DURATION * 1000][7]{};
-float ext_tau_log[DURATION * 1000][7]{};
-
-k_api::BaseCyclic::Feedback data_log[DURATION * 1000]{};
-
-// Gripper global variables
-float myGRIP_POS1[DURATION * 1000]{}, myGRIP_POS2[DURATION * 1000]{};
-float myGRIP_VEL1[DURATION * 1000]{}, myGRIP_VEL2[DURATION * 1000]{};
-
-
-int focus = 0;
+// STATEMENTS to include for UDP - non-blocking - end
 
 int64_t GetTickUs()
 {
@@ -420,7 +372,7 @@ int64_t GetTickUs()
 	QueryPerformanceFrequency(&frequency);
 	QueryPerformanceCounter(&start);
 
-	timestamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count();
+	timestamp = duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count(); // updates the global unix_epoch value by way of calling GetTickUs();
 
 	return (start.QuadPart * 1000000) / frequency.QuadPart;
 #else
@@ -449,9 +401,9 @@ void write_to_file_v2(k_api::BaseCyclic::Feedback data_log[], const std::string 
 	get_exp_folder_v2();
 	string base_path = exp_folder;
 
-	string timestamp = GetTimestamp(now);
+	string file_timestamp = GetTimestamp(now);
 
-	ofstream log_file(base_path + file_name + timestamp + ".csv");
+	ofstream log_file(base_path + file_name + file_timestamp + ".csv");
 
 	if (log_file.is_open())
 	{
@@ -560,7 +512,6 @@ void write_to_file_v2(k_api::BaseCyclic::Feedback data_log[], const std::string 
 				log_file << (dynamics->getTorque()[j] + (b[j] * qd[j])) << ",";
 			}
 
-
 			// added on 2024-02-06
 			// "V_1,V_2,V_3,V_4,V_5,V_6,V_7"
 			for (int j = 0; j < ACTUATOR_COUNT; ++j)
@@ -648,7 +599,6 @@ void write_to_file_v2(k_api::BaseCyclic::Feedback data_log[], const std::string 
 	std::cout << "Writing to file completed!" << std::endl;
 }
 
-
 float calculate_delta_q(float q_m, float q_s, char unit) {
 	float del_q = q_m - q_s;
 	if (unit == 'd')
@@ -682,7 +632,6 @@ float calculate_delta_q(float q_m, float q_s, char unit) {
 		}
 	}
 }
-
 
 bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ActuatorConfig::ActuatorConfigClient* actuator_config, const std::string robot_model, bool gripper)
 {
