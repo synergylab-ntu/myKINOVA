@@ -88,6 +88,9 @@ int __cdecl main() {
 
     // Create a receiver socket to receive datagrams - RECV
     RecvSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    unsigned long ul = 1;
+    int           nRet;
+    nRet = ioctlsocket(RecvSocket, FIONBIO, (unsigned long*)&ul);
 
     //struct timeval read_timeout;
     //read_timeout.tv_sec = 0;
