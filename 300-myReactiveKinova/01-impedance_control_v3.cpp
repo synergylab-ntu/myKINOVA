@@ -454,7 +454,7 @@ void write_to_file_v2(k_api::BaseCyclic::Feedback data_log[], const std::string 
 
 	if (log_file.is_open())
 	{
-		log_file << "Robot IP:" << ROBOT_IP "\n";
+		log_file << "Robot IP:" << ROBOT_IP << "\n";
 
 		log_file << "Time(ms),Time(s),Unix_epoch(ns),"
 			<< GetSymbol_JointDamping() << ","
