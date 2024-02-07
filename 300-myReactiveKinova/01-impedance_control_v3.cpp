@@ -104,6 +104,15 @@ k_api::BaseCyclic::Feedback data_log[DURATION * 1000]{};
 float UDP_q[ACTUATOR_COUNT];
 float des_q[ACTUATOR_COUNT];
 
+std::string UDPsendbuf;
+const char* sendbuf3;
+float num_TOSEND[7];
+int num_TOSEND_idx;
+std::string delimiter = "||";
+float num_float;
+size_t STRINGpos;
+std::string token;
+
 //// Gripper global variables
 //float myGRIP_POS1[DURATION * 1000]{}, myGRIP_POS2[DURATION * 1000]{};
 //float myGRIP_VEL1[DURATION * 1000]{}, myGRIP_VEL2[DURATION * 1000]{};
@@ -308,6 +317,63 @@ int initialize_Winsock()
 
 }
 
+
+void UDP_send_recv_v3(float* input_pos, float* UDP_q)
+{
+	int delimiter_idx = 0;
+
+	UDPsendbuf = "";
+	UDPsendbuf.append("q_start"); // string to send
+
+	for (num_TOSEND_idx = 0; num_TOSEND_idx < 7; num_TOSEND_idx++) {
+		num_TOSEND[num_TOSEND_idx] = input_pos[num_TOSEND_idx];
+		UDPsendbuf.append(std::to_string(num_TOSEND[num_TOSEND_idx]));
+		UDPsendbuf.append("||");
+
+	}
+	UDPsendbuf.append("q_end");
+
+	// UDP part - start
+	//wprintf(L"Sending datagrams...\n");
+
+	sendbuf3 = UDPsendbuf.c_str();
+
+	iResult = send(ConnectSocket, sendbuf3, (int)strlen(sendbuf3), 0);
+	//wprintf(L"datagrams sent...\n");
+	iResult2 = recvfrom(RecvSocket,
+		RecvBuf, BufLen, 0, (SOCKADDR*)&SenderAddr, &SenderAddrSize);
+
+	//iResult2 = recv(RecvSocket, RecvBuf, BufLen, 0);
+
+
+	if (iResult2 > 0) // print recvbuffer ONLY if something was received
+	{
+		//wprintf(L"Received datagrams...\n");
+
+		//std::cout << RecvBuf << std::endl;
+		std::string myMATLAB_DATA(RecvBuf);
+
+		STRINGpos = 0;
+		token = "";
+		delimiter_idx = 0;
+		while ((STRINGpos = myMATLAB_DATA.find(delimiter)) != std::string::npos) {
+			token = myMATLAB_DATA.substr(0, STRINGpos);
+			num_float = std::stof(token);
+			UDP_q[delimiter_idx] = num_float;
+
+			myMATLAB_DATA.erase(0, STRINGpos + delimiter.length());
+			delimiter_idx++;
+			if (delimiter_idx > 6)
+			{
+				break;
+			}
+		}
+		//std::cout << "q1 =" << UDP_q[0] << " q2 =" << UDP_q[1] << " q3 =" << UDP_q[2] << " q4 =" << UDP_q[3] << " q5 =" << UDP_q[4] << " q6 =" << UDP_q[5] << " q7 =" << UDP_q[6] << std::endl;
+	}
+	// UDP part - end
+
+}
+
 void UDP_send_recv_v2(float* input_pos, float* UDP_q)
 {
 	int delimiter_idx = 0;
@@ -324,6 +390,7 @@ void UDP_send_recv_v2(float* input_pos, float* UDP_q)
 	}
 	UDPsendbuf.append("q_end");
 
+	std::cout << "quend" << std::endl;
 	// UDP part - start
 	wprintf(L"Sending datagrams...\n");
 
@@ -331,6 +398,8 @@ void UDP_send_recv_v2(float* input_pos, float* UDP_q)
 	wprintf(L"datagrams sent...\n");
 	iResult2 = recvfrom(RecvSocket,
 		RecvBuf, BufLen, 0, (SOCKADDR*)&SenderAddr, &SenderAddrSize);
+
+	//iResult2 = recv(RecvSocket, RecvBuf, BufLen, 0);
 
 
 	if (iResult2 > 0) // print recvbuffer ONLY if something was received
@@ -773,13 +842,12 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 
 		// Defining the UDP send
 		float num_TOSEND[7];
-		num_TOSEND[0] = 0;
-		num_TOSEND[1] = 0;
-		num_TOSEND[2] = 0;
-		num_TOSEND[3] = 0;
-		num_TOSEND[4] = 0;
-		num_TOSEND[5] = 0;
-		num_TOSEND[6] = 0;
+
+		for (i = 0; i < ACTUATOR_COUNT; i++)
+		{
+			q[i] = (base_feedback.actuators(i).position() * rl::math::DEG2RAD) + del_q[i];
+			num_TOSEND[i] = q[i];
+		}
 
 
 		//Realtime control loop. Press "Q" key to exit loop.
@@ -796,12 +864,9 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 				if (timer_count % 1 == 0 && data_count < DURATION * 1000 && logging == 1)
 				{
 					data_log[data_count] = base_feedback;
-
-					
-
-					unix_epoch[data_count] = timestamp;
-
 					time_log[data_count] = GetTickUs();
+					//UDP_send_recv_v3(num_TOSEND, UDP_q);
+					unix_epoch[data_count] = timestamp;
 					++data_count;
 				}
 
@@ -810,10 +875,10 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 					q[i] = (base_feedback.actuators(i).position() * rl::math::DEG2RAD) + del_q[i];
 					qd[i] = base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
 					qdd[i] = 0.0;
-					num_TOSEND[i] = q[i];
+					/*num_TOSEND[i] = q[i];
 					des_q[i] = UDP_q[i];
 					UDP_q_log[data_count][i] = UDP_q[i];
-					ext_tau_log[data_count][i] = ext_tau[i];
+					ext_tau_log[data_count][i] = ext_tau[i];*/
 				}
 
 				dynamics->setPosition(q);
@@ -825,7 +890,7 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 				{
 					if (i >= focus)
 					{
-						ext_tau[i] = (K[i] * calculate_delta_q(des_q[i] - dq[i], q[i], 'r'));
+						/*ext_tau[i] = (K[i] * calculate_delta_q(des_q[i] - dq[i], q[i], 'r'));
 
 						if (ext_tau[i] > ext_tau_limit[i])
 						{
@@ -835,7 +900,7 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 						if (ext_tau[i] < - ext_tau_limit[i])
 						{
 							ext_tau[i] = - ext_tau_limit[i];
-						}
+						}*/
 
 						base_command.mutable_actuators(i)->set_torque_joint(dynamics->getTorque()[i] + (B_gain[i] * B[i] * qd[i]) + ext_tau[i]);
 						base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
@@ -872,7 +937,7 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 				}
 				
 
-				UDP_send_recv_v2(num_TOSEND, UDP_q);
+				
 				std::cout << "q1 =" << UDP_q[0] << " q2 =" << UDP_q[1] << " q3 =" << UDP_q[2] << " q4 =" << UDP_q[3] << " q5 =" << UDP_q[4] << " q6 =" << UDP_q[5] << " q7 =" << UDP_q[6] << std::endl;
 				std::cout << "des q1 =" << des_q[0] << " q2 =" << des_q[1] << " q3 =" << des_q[2] << " q4 =" << des_q[3] << " q5 =" << des_q[4] << " q6 =" << des_q[5] << " q7 =" << des_q[6] << std::endl;
 
