@@ -135,6 +135,7 @@ int __cdecl main() {
         //wprintf(L"Receiving datagrams...\n");
         iResult2 = recvfrom(RecvSocket,
             RecvBuf, BufLen, 0, (SOCKADDR*)&SenderAddr, &SenderAddrSize);
+        //iResult2 = recv(RecvSocket, RecvBuf, BufLen, 0);
         wprintf(L"Received datagrams...\n");
 
         if (iResult2 > 0) // print recvbuffer ONLY if something was received
