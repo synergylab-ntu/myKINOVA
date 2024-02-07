@@ -135,7 +135,7 @@ void get_exp_folder_v2()
 #define DEFAULT_BUFLEN 512
 #define SEND_PORT 27015
 #define RECV_PORT 27016
-#define ROBOT_IP "192.180.0.107"
+std::string ROBOT_IP;
 
 // Include for RECV
 #ifndef UNICODE
@@ -401,6 +401,7 @@ namespace k_api = Kinova::Api;
 double time_log[DURATION * 1000]{};
 int64_t unix_epoch[DURATION * 1000]{};
 float UDP_q_log[DURATION * 1000][7]{};
+float ext_tau_log[DURATION * 1000][7]{};
 
 k_api::BaseCyclic::Feedback data_log[DURATION * 1000]{};
 
@@ -482,6 +483,7 @@ void write_to_file_v2(k_api::BaseCyclic::Feedback data_log[], const std::string 
 			<< "tool_external_wrench_force_x, tool_external_wrench_force_y, tool_external_wrench_force_z,"
 			<< "tool_external_wrench_torque_x, tool_external_wrench_torque_y, tool_external_wrench_torque_z" << ", "
 			<< "UDP_q1,UDP_q2,UDP_q3,UDP_q4,UDP_q5,UDP_q6,UDP_q7" << ","
+			<< "ext_tau1,ext_tau2,ext_tau3,ext_tau4,ext_tau5,ext_tau6,ext_tau7" << ","
 			<< "Index\n";
 
 		for (int i = 0; i < duration * 1000 && i < data_count - 1; ++i)
@@ -631,6 +633,13 @@ void write_to_file_v2(k_api::BaseCyclic::Feedback data_log[], const std::string 
 			{
 				log_file << UDP_q_log[i][j] << ",";
 			}
+
+			// "ext_tau1,ext_tau2,ext_tau3,ext_tau4,ext_tau5,ext_tau6,ext_tau7"
+			for (int j = 0; j < ACTUATOR_COUNT; ++j)
+			{
+				log_file << ext_tau_log[i][j] << ",";
+			}
+			
 					
 
 			log_file << i << "\n";
@@ -709,10 +718,14 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 	rl::math::Vector B_net(dynamics->getDof());
 	rl::math::Vector K(dynamics->getDof());
 	rl::math::Vector del_q(dynamics->getDof());
+	rl::math::Vector ext_tau(dynamics->getDof());
+	rl::math::Vector ext_tau_limit(dynamics->getDof());
 	std::cout << "im here2" << std::endl;
 	std::cout << dynamics->getDof() << endl;
 
 
+	ext_tau << 0, 0, 0, 0, 0, 0, 0;
+	ext_tau_limit << 3, 2, 2, 5, 4, 3, 6;
 	q << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 	qd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 	qdd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -851,6 +864,7 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 					num_TOSEND[i] = q[i];
 					des_q[i] = UDP_q[i];
 					UDP_q_log[data_count][i] = UDP_q[i];
+					ext_tau_log[data_count][i] = ext_tau[i];
 				}
 
 				dynamics->setPosition(q);
@@ -862,7 +876,19 @@ bool gravity_compensation_async(k_api::Base::BaseClient* base, k_api::BaseCyclic
 				{
 					if (i >= focus)
 					{
-						base_command.mutable_actuators(i)->set_torque_joint(dynamics->getTorque()[i] + (B_gain[i] * B[i] * qd[i]) +(K[i] * calculate_delta_q(des_q[i] - dq[i], q[i], 'r')));
+						ext_tau[i] = (K[i] * calculate_delta_q(des_q[i] - dq[i], q[i], 'r'));
+
+						if (ext_tau[i] > ext_tau_limit[i])
+						{
+							ext_tau[i] = ext_tau_limit[i];
+						}
+
+						if (ext_tau[i] < - ext_tau_limit[i])
+						{
+							ext_tau[i] = - ext_tau_limit[i];
+						}
+
+						base_command.mutable_actuators(i)->set_torque_joint(dynamics->getTorque()[i] + (B_gain[i] * B[i] * qd[i]) + ext_tau[i]);
 						base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
 					}
 				}
@@ -1063,6 +1089,16 @@ bool example_move_to_home_position(k_api::Base::BaseClient* base)
 
 int main()
 {
+
+
+	printf("Enter IP Address of the robot\n");
+	char myIP_input[20];
+	scanf("%[^\n]%*c", myIP_input);
+	printf("IP Address entered is : %s\n", myIP_input);
+
+	std::string ROBOT_IP2(myIP_input);
+	ROBOT_IP = ROBOT_IP2;
+
 	// Create API objects
 	auto error_callback = [](k_api::KError err) { cout << "_________ callback error _________" << err.toString(); };
 
