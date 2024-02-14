@@ -20,7 +20,6 @@
 #include <vector>
 #include <conio.h>
 
-
 #define ACTUATOR_COUNT 7
 
 string GetTimestamp(time_t now) {
