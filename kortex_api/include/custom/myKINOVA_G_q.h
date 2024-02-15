@@ -165,6 +165,7 @@ public:
 				q[i] = (base_feedback.actuators(i).position() * rl::math::DEG2RAD);
 				qd[i] = base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
 				des_q[i] = q[i]; // initialising the des_q to the home configuration you start from - VERY IMPORTANT
+				tau_ctrl[i] = 0;
 			}
 
 			// Initialise the gripper position, velocity and force
@@ -196,7 +197,7 @@ public:
 				}
 			}
 
-			myKINOVA_UDP ROBOT_UDP(SEND_PORT, RECV_PORT, SEND_IP_ADDRESS, RECV_IP_ADDRESS);
+			myKINOVA_UDP ROBOT_UDP(CTRL_MODE, SEND_PORT, RECV_PORT, SEND_IP_ADDRESS, RECV_IP_ADDRESS);
 			ROBOT_UDP.setup_UDP();
 
 			for (i = 0; i < ACTUATOR_COUNT; i++)

@@ -44,6 +44,7 @@ public:
     u_short RECV_PORT;
     const char* SEND_IP_ADDRESS;
     const char* RECV_IP_ADDRESS;
+    int CTRL_MODE = 0;
 
     // Declare and initialize variables - SEND
     WSADATA wsaData;
@@ -219,9 +220,11 @@ public:
                 {
                     UDP_q[delimiter_idx] = num_float;
                 }
-                if (delimiter_idx > 6 && delimiter_idx <= 13)
-                {
-                    UDP_tau[delimiter_idx] = num_float;
+                if (CTRL_MODE >0) {
+                    if (delimiter_idx > 6 && delimiter_idx <= 13)
+                    {
+                        UDP_tau[delimiter_idx] = num_float;
+                    }
                 }
                 if(delimiter_idx > 13)
                 {
@@ -252,8 +255,9 @@ public:
         WSACleanup();
     }
 
-    myKINOVA_UDP(u_short SEND_PORT_input, u_short RECV_PORT_input, const char* SEND_IP_input, const char* RECV_IP_input)
+    myKINOVA_UDP(int CTRL_MODE_input, u_short SEND_PORT_input, u_short RECV_PORT_input, const char* SEND_IP_input, const char* RECV_IP_input)
     {
+        CTRL_MODE = CTRL_MODE_input;
         SEND_PORT = SEND_PORT_input;
         RECV_PORT = RECV_PORT_input;
         SEND_IP_ADDRESS = SEND_IP_input;
