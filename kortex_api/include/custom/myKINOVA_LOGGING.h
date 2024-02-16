@@ -279,6 +279,7 @@ public:
     char EXEPATH[MAX_PATH];
     std::string ROBOT_IP;
     int ACTUATOR_COUNT = 7;
+    int data_count_final;
 
     std::string GetTimestamp(time_t now) {
         tm* ltm = localtime(&now);
@@ -389,6 +390,7 @@ public:
         //
         std::ofstream log_file(base_path + file_name + timestamp);
 
+        std::cout << "Writing to log now" << std::endl;
         if (log_file.is_open())
         {
             log_file << "Robot IP:" << ROBOT_IP << "\n";
@@ -419,8 +421,8 @@ public:
                 << "UDP_tau1,UDP_tau2,UDP_tau3,UDP_tau4,UDP_tau5,UDP_tau6,UDP_tau7" << ","
                 << "ext_tau1,ext_tau2,ext_tau3,ext_tau4,ext_tau5,ext_tau6,ext_tau7" << ","
                 << "Index\n";
-
-            for (int i = 0; i < duration * 1000 && i < DATA.arr_length - 1; ++i)
+            std::cout << DATA.arr_length << std::endl;
+            for (int i = 0; i < duration * 1000 && i < data_count_final - 1; ++i)
             {
                 log_file << (DATA.time_log[i] - DATA.time_log[0]) / 1000 << ",";
                 log_file << (DATA.time_log[i] - DATA.time_log[0]) / 1000000 << ",";
@@ -561,7 +563,7 @@ public:
                     log_file << DATA.ext_tau_log[i][j] << ",";
                 }
 
-
+                std::cout << "Inside the loop at iteration :" << i << std::endl;
 
                 log_file << i << "\n";
             }
@@ -570,8 +572,9 @@ public:
 
     }
 
-    myWRITE_KINOVA_LOG(int duration_in, std::string ROBOT_IP_in) {
+    myWRITE_KINOVA_LOG(int duration_in, std::string ROBOT_IP_in, int data_count_final_in) {
         duration = duration_in;
+        data_count_final = data_count_final_in;
         ROBOT_IP = ROBOT_IP_in;
     }
 };

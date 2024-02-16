@@ -47,6 +47,7 @@ public:
 	float tau_cmd[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 	float ext_tau[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 	float tau_ctrl[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	int data_count_final;
 
 	std::string ROBOT_IP;
 	std::string robot_model;
@@ -58,8 +59,9 @@ public:
 		}
 	}*/
 
-	bool ROBOT_Gq(bool gripper, int DURATION_IN) {
-		DURATION = DURATION_IN;
+	bool ROBOT_Gq(int DURATION_IN) {
+		bool gripper = TRUE;
+		std::cout << DURATION_IN << std::endl;
 
 		auto error_callback = [](k_api::KError err) { std::cout << "_________ callback error _________" << err.toString(); };
 		// ### TO DO ###: Change to correct IP
@@ -348,6 +350,7 @@ public:
 			return_status = false;
 		}
 
+		data_count_final = data_count;
 		std::cout << "Ending Gravity Compensation" << std::endl;
 
 
@@ -366,8 +369,7 @@ public:
 		base->SetServoingMode(servoing_mode);
 
 		//Save logs
-
-		myWRITE_KINOVA_LOG LOG_WRITER(DURATION, ROBOT_IP);
+		myWRITE_KINOVA_LOG LOG_WRITER(DURATION, ROBOT_IP, data_count_final);
 		LOG_WRITER.write2FILE(ROBOT_LOG, model);
 
 		// Wait for a bit
@@ -486,7 +488,8 @@ public:
 	myKINOVA(std::string robot_model_in, std::string ROBOT_IP_in, int CTRL_MODE_IN, u_short SEND_PORT_IN, u_short RECV_PORT_IN, const char* SEND_IP_ADDRESS_IN, const char* RECV_IP_ADDRESS_IN, int DURATION_IN, bool gripper_val) {
 		robot_model = robot_model_in;
 		ROBOT_IP = ROBOT_IP_in;
-		ROBOT_Gq(gripper_val, DURATION_IN);
+		DURATION = DURATION_IN;
+		//ROBOT_Gq(gripper_val, DURATION_IN);
 		SEND_IP_ADDRESS = SEND_IP_ADDRESS_IN;
 		RECV_IP_ADDRESS = RECV_IP_ADDRESS_IN;
 		SEND_PORT = SEND_PORT_IN;
@@ -497,7 +500,8 @@ public:
 	myKINOVA(myPARAMS PARAMS_IN) {
 		robot_model = PARAMS_IN.robot_model;
 		ROBOT_IP = PARAMS_IN.ROBOT_IP;
-		ROBOT_Gq(PARAMS_IN.gripper_val, PARAMS_IN.DURATION);
+		DURATION = PARAMS_IN.DURATION;
+		//ROBOT_Gq(PARAMS_IN.gripper_val, PARAMS_IN.DURATION);
 		SEND_IP_ADDRESS = PARAMS_IN.SEND_IP_ADDRESS;
 		RECV_IP_ADDRESS = PARAMS_IN.RECV_IP_ADDRESS;
 		SEND_PORT = PARAMS_IN.SEND_PORT;
