@@ -24,7 +24,6 @@ int main()
 	myKINOVA ROBOT(params_struct);
 
 	std::string ROBOT_IP_in2 = "192.180.0.108";
-	//(myIP_input);
 
 	//Kinova with Robotiq 2f 85 Gripper
 	const std::string robot_model2 = "D:/myKinova_v2/Robot/GEN3_GRIPPER_2024.urdf";
@@ -33,9 +32,9 @@ int main()
 
 	myKINOVA ROBOT2(params_struct2);
 
-	std::thread t1(&myKINOVA::ROBOT_Gq, &ROBOT, DURATION);
+	std::thread t1(&myKINOVA::ROBOT_Gq, &ROBOT, TRUE);
 
-	std::thread t2(&myKINOVA::ROBOT_Gq, &ROBOT2, DURATION);
+	std::thread t2(&myKINOVA::ROBOT_Gq, &ROBOT2, TRUE);
 
 	t1.join();
 	t2.join();
