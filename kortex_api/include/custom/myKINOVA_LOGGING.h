@@ -164,11 +164,21 @@ string getCurrentTorque() {
 class myKINOVA_LOG
 {
 public:
+    // newvars
+    // data management variables
+    int i;
+    int timer_count = 0;
+    int64_t now = 0;
+    int64_t last = 0;
+    
+    int logging = 1;      //change to zero to manually start logging
+    int focus = 0;
+    int data_count_final;
+    // newvars
+
     int                             data_count = 0;
     int                             ACTUATOR_COUNT = 7;
-    double                          justnow;
     int64_t                         timestamp;
-    int64_t                         now;
     
 
 
@@ -242,8 +252,12 @@ public:
         return pointer[i][j];
     }
 
+    myKINOVA_LOG() {// default constructor
+
+    }
+
     myKINOVA_LOG(int duration_in) {
-        justnow = GetTickUs();
+        now = GetTickUs();
         DURATION = duration_in;
         arr_length = DURATION * 1000;
         time_log = new double[arr_length];

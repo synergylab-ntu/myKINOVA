@@ -298,6 +298,10 @@ public:
         WSACleanup();
     }
 
+
+    myKINOVA_UDP(){// default constructor
+    }
+
     myKINOVA_UDP(int CTRL_MODE_input, u_short SEND_PORT_input, u_short RECV_PORT_input, const char* SEND_IP_input, const char* RECV_IP_input)
     {
         CTRL_MODE = CTRL_MODE_input;
