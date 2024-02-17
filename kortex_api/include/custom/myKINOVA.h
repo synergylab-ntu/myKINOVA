@@ -28,10 +28,10 @@ public:
 
 class myKINOVA {
 
-private:
+public:
 	// Kinova API variables
-	KINOVA* slave_tcp;
-	KINOVA* slave_udp;
+	KINOVA* robot_tcp;
+	KINOVA* robot_udp;
 	bool return_status;
 	std::shared_ptr<rl::mdl::Model> model;
 	rl::mdl::Kinematic* kinematic;
@@ -48,14 +48,17 @@ private:
 	k_api::ActuatorConfig::ActuatorConfigClient* actuator_config;
 	bool gripper;
 	k_api::ActuatorConfig::ControlModeInformation control_mode_message;
+	int role;
+	
 
-public:
 	//// data management variables
 	int i;
 	float gripper_position;
 
 	int ACTUATOR_COUNT = 7;
 	
+	float teleop_cmd[7];
+
 	myKINOVA_CMD ROB_CMD;
 	myROB_PARAMS ROB_PARAMS;
 	myKINOVA_LOG ROB_LOG;
@@ -142,16 +145,16 @@ public:
 	}
 
 	void setupROB() {
-		slave_tcp = new KINOVA(ROB_PARAMS.ROBOT_IP, 10000);
-		slave_tcp->Init_TCP();
+		robot_tcp = new KINOVA(ROB_PARAMS.ROBOT_IP, 10000);
+		robot_tcp->Init_TCP();
 
-		slave_udp = new KINOVA(ROB_PARAMS.ROBOT_IP, 10001);
-		slave_udp->Init_UDP();
+		robot_udp = new KINOVA(ROB_PARAMS.ROBOT_IP, 10001);
+		robot_udp->Init_UDP();
 
 		std::cout << "Creating Client" << std::endl;
-		base = get_base(slave_tcp);
-		base_cyclic = get_basecyclic(slave_udp);
-		actuator_config = get_actuatorconfig(slave_tcp);
+		base = get_base(robot_tcp);
+		base_cyclic = get_basecyclic(robot_udp);
+		actuator_config = get_actuatorconfig(robot_tcp);
 		std::cout << "Client Created" << std::endl;
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // especially for goHOME(base) was called, but still keep it even if commented
 	}
@@ -198,6 +201,8 @@ public:
 			tau[i] = base_feedback.actuators(i).torque();
 			// add tau also
 		}
+
+		ROB_UDP = setUDP(ROB_UDP);
 	}
 
 	void init_actuators() {
@@ -228,24 +233,22 @@ public:
 		base_feedback_async = base_cyclic->Refresh_async(base_command);
 	}
 
-	myKINOVA_UDP init_UDP_VARS(myKINOVA_UDP ROBOT_UPD_in) {
+	myKINOVA_UDP init_UDP_VARS(myKINOVA_UDP ROBOT_UDP_in) {
 		for (i = 0; i < ACTUATOR_COUNT; i++)
 		{
 			q[i] = (base_feedback.actuators(i).position() * rl::math::DEG2RAD);
-			ROBOT_UPD_in.num_TOSEND[i] = q[i];
-			ROBOT_UPD_in.UDP_q[i] = q[i];
+			ROBOT_UDP_in.num_TOSEND[i] = q[i];
+			ROBOT_UDP_in.UDP_q[i] = q[i];
 		}
-		return ROBOT_UPD_in;
+		return ROBOT_UDP_in;
 	}
 
-	myKINOVA_UDP getsetUDP(myKINOVA_UDP ROBOT_UPD_in) {
+	myKINOVA_UDP setUDP(myKINOVA_UDP ROBOT_UDP_in) {
 		for (i = 0; i < ACTUATOR_COUNT; i++)
 		{
-			ROBOT_UPD_in.num_TOSEND[i] = q[i];
-			ROB_CMD.des_q[i] = ROBOT_UPD_in.UDP_q[i];
-			ROB_CMD.tau_ctrl[i] = ROBOT_UPD_in.UDP_tau[i];
+			ROBOT_UDP_in.num_TOSEND[i] = q[i];
 		}
-		return ROBOT_UPD_in;
+		return ROBOT_UDP_in;
 	}
 
 	void init_TORQUE_CONTROL() {
@@ -264,7 +267,7 @@ public:
 		}
 	}
 
-	void setCMD() {
+	void setCONTROL() {
 
 		dynamics->setPosition(q);
 		dynamics->setVelocity(qd);
@@ -275,10 +278,15 @@ public:
 		{
 			if (i >= ROB_LOG.focus)
 			{
-
-				if (ROB_CMD.CTRL_MODE == 0)
+				if (ROB_CMD.CTRL_MODE == 0 || ROB_CMD.CTRL_MODE == 4) // standard IMPEDANCE CONTROL (0) or Teleoperation (4)
 				{
-					ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r'));
+					if (role == 0) {
+						ROB_CMD.ext_tau[i] = 0; // for the master robot
+					}
+					else if (role == 1) {
+						ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')); // for the slave robot
+					}
+					
 				}
 				else if (ROB_CMD.CTRL_MODE == 1)
 				{
@@ -287,6 +295,10 @@ public:
 				else if (ROB_CMD.CTRL_MODE == 2)
 				{
 					ROB_CMD.ext_tau[i] = ROB_CMD.tau_ctrl[i];
+				}
+				else if (ROB_CMD.CTRL_MODE == 3) // gravity compensation
+				{
+					ROB_CMD.ext_tau[i] = 0;
 				}
 
 				if (ROB_CMD.ext_tau[i] > ext_tau_limit[i])
@@ -304,6 +316,10 @@ public:
 				base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
 			}
 		}
+
+		misc_KB_inputs();
+		gripper_KB_CMD();
+
 	}
 
 	void gripper_KB_CMD() {
@@ -381,6 +397,7 @@ public:
 	}
 
 	void quickSETUP() {
+		auto error_callback = [](k_api::KError err) { std::cout << "_________ callback error _________" << err.toString(); };
 		setupROB();
 
 		// Clearing faults
@@ -515,24 +532,83 @@ public:
 		};
 	}
 
-	bool ROBOT_Gq(bool gripper_in) {
-		gripper = gripper_in;
-		auto error_callback = [](k_api::KError err) { std::cout << "_________ callback error _________" << err.toString(); };
-
-		quickSETUP();
-
+	void init_LOG() {
 		init_logging_vars();
 		ROB_LOG = set_ROB_LOG(ROB_PARAMS.DURATION);
+	}
+
+	void init_UDP() {
+		ROB_UDP = set_ROB_UDP();
+		ROB_UDP.setup_UDP();
+		ROB_UDP = init_UDP_VARS(ROB_UDP);
+	}
+
+	void LOG_IT() {
+		if (ROB_LOG.timer_count % 1 == 0 && ROB_LOG.data_count < ROB_PARAMS.DURATION * 1000 && ROB_LOG.logging == 1)
+		{
+			ROB_LOG.write2LOG(ROB_LOG.data_count, base_feedback, ROB_CMD.ext_tau, ROB_UDP.UDP_q, ROB_UDP.UDP_tau, ROB_CMD.tau_cmd);
+			ROB_UDP.UDP_send_recv_v4(ROB_UDP.num_TOSEND);
+			++ROB_LOG.data_count;
+		}
+	}
+
+	void sendCMD() {
+		setCONTROL();
+		setcommand_FRAMEID();
+		++ROB_LOG.timer_count;
+		ROB_LOG.last = ROB_LOG.GetTickUs();
+	}
+
+	void myCLEANUP() {
+		ROB_UDP.cleanup();
+		reset_SERVOING_MODE();
+	}
+
+	void myWRITE() {
+		//Save logs
+		myWRITE_KINOVA_LOG LOG_WRITER(ROB_PARAMS.DURATION, ROB_PARAMS.ROBOT_IP, ROB_LOG.data_count_final);
+		LOG_WRITER.write2FILE(ROB_LOG, model);
+
+		// Wait for a bit
+		std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	}
+
+	void setCMD(float cmd_input[7]) {
+		if (ROB_PARAMS.CTRL_MODE < 3) { // only for MATLAB real time control of the robot using impedance control
+			for (i = 0; i < ACTUATOR_COUNT; ++i)
+			{
+				ROB_CMD.des_q[i] = ROB_UDP.UDP_q[i];
+				ROB_CMD.tau_ctrl[i] = ROB_UDP.UDP_tau[i];
+			}
+		}
+
+		if (ROB_PARAMS.CTRL_MODE == 3) { // only for gravity compensation
+			for (i = 0; i < ACTUATOR_COUNT; ++i)
+			{
+				ROB_CMD.des_q[i] = 0;
+				ROB_CMD.tau_ctrl[i] = 0;
+			}
+		}
+
+		if (ROB_PARAMS.CTRL_MODE == 4) { // only for teleoperation
+			for (i = 0; i < ACTUATOR_COUNT; ++i)
+			{
+				ROB_CMD.des_q[i] = cmd_input[i];
+				ROB_CMD.tau_ctrl[i] = 0;
+			}
+		}
+
+	}
+
+	bool ROBOT_Gq(bool gripper_in) {
+		gripper = gripper_in;
+		quickSETUP();
+		init_LOG();
 
 		try
-		{
+		{// initialize low level torque control and UDP communication
 			initialize_torque_control();
-
-			// initialise communication
-			ROB_UDP = set_ROB_UDP();
-			ROB_UDP.setup_UDP();
-			ROB_UDP = init_UDP_VARS(ROB_UDP);
-
+			init_UDP();
 			//Realtime control loop. Press "Q" key to exit loop.
 			while (!(GetKeyState('Q') & 0x8000))
 			{
@@ -542,26 +618,12 @@ public:
 					//-----------------------------------------------------------------------------//
 					base_feedback = base_feedback_async.get();
 
-					if (ROB_LOG.timer_count % 1 == 0 && ROB_LOG.data_count < ROB_PARAMS.DURATION * 1000 && ROB_LOG.logging == 1)
-					{
-						ROB_LOG.write2LOG(ROB_LOG.data_count, base_feedback, ROB_CMD.ext_tau, ROB_UDP.UDP_q, ROB_UDP.UDP_tau, ROB_CMD.tau_cmd);
-						ROB_UDP.UDP_send_recv_v4(ROB_UDP.num_TOSEND);
-						++ROB_LOG.data_count;
-					}
-
+					LOG_IT();
+					
 					getFBK();
-					ROB_UDP = getsetUDP(ROB_UDP);
-
-					setCMD();
-
-					misc_KB_inputs();
-
-					gripper_KB_CMD();
-
-					setcommand_FRAMEID();
-
-					++ROB_LOG.timer_count;
-					ROB_LOG.last = ROB_LOG.GetTickUs();
+					setCMD(ROB_CMD.des_q); // should discern between using MATLAB UDP input as command or teleoperation input as command
+					
+					sendCMD();
 				}
 			}
 		}
@@ -576,17 +638,13 @@ public:
 			return_status = false;
 		}
 
-		ROB_UDP.cleanup();
-		reset_SERVOING_MODE();
-
-		//Save logs
-		myWRITE_KINOVA_LOG LOG_WRITER(ROB_PARAMS.DURATION, ROB_PARAMS.ROBOT_IP, ROB_LOG.data_count_final);
-		LOG_WRITER.write2FILE(ROB_LOG, model);
-
-		// Wait for a bit
-		std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
+		myCLEANUP();
+		myWRITE();
+		
 		return return_status;
+	}
+
+	myKINOVA() {// default constructor
 	}
 
 	myKINOVA(std::string robot_model_in, std::string ROBOT_IP_in, int CTRL_MODE_IN, u_short SEND_PORT_IN, u_short RECV_PORT_IN, const char* SEND_IP_ADDRESS_IN, const char* RECV_IP_ADDRESS_IN, int DURATION_IN, bool gripper_val) {
@@ -594,8 +652,20 @@ public:
 		ROB_PARAMS = set_ROB_PARAMS(setPARAMS(robot_model_in, ROBOT_IP_in, CTRL_MODE_IN, SEND_PORT_IN, RECV_PORT_IN, SEND_IP_ADDRESS_IN, RECV_IP_ADDRESS_IN, DURATION_IN, gripper_val));
 	}
 
+	myKINOVA(std::string robot_model_in, std::string ROBOT_IP_in, int CTRL_MODE_IN, u_short SEND_PORT_IN, u_short RECV_PORT_IN, const char* SEND_IP_ADDRESS_IN, const char* RECV_IP_ADDRESS_IN, int DURATION_IN, bool gripper_val, int role_in) {
+		ROB_CMD = set_ROB_CMD(CTRL_MODE_IN);
+		ROB_PARAMS = set_ROB_PARAMS(setPARAMS(robot_model_in, ROBOT_IP_in, CTRL_MODE_IN, SEND_PORT_IN, RECV_PORT_IN, SEND_IP_ADDRESS_IN, RECV_IP_ADDRESS_IN, DURATION_IN, gripper_val));
+		role = role_in;
+	}
+
 	myKINOVA(myPARAMS PARAMS_IN) {
 		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
 		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+	}
+
+	myKINOVA(myPARAMS PARAMS_IN, int role_in) {
+		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
+		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+		role = role_in;
 	}
 };
