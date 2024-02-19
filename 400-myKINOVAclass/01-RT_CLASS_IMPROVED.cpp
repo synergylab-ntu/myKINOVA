@@ -18,15 +18,15 @@ int main()
 
 	//Kinova with Robotiq 2f 85 Gripper
 	const std::string robot_model = "D:/myKinova_v2/Robot/GEN3_GRIPPER_2024.urdf";
-	int CTRL_MODE = 0;
+	int CTRL_MODE = 3;
 	int DURATION = 1000;
 	myPARAMS params_struct = setPARAMS(robot_model, ROBOT_IP_in, CTRL_MODE, 27015, 27016, "127.0.0.1", "127.0.0.1", DURATION, TRUE);
 
 	myKINOVA ROBOT(params_struct);
 
-//	std::thread t1(&myKINOVA::ROBOT_Gq, &ROBOT, TRUE);
+	std::thread t1(&myKINOVA::ROBOT_Gq, &ROBOT, TRUE);
 
-	//t1.join();
+	t1.join();
 
 	return 0;
 }

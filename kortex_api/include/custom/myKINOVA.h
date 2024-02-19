@@ -57,7 +57,7 @@ public:
 
 	int ACTUATOR_COUNT = 7;
 	
-	float teleop_cmd[7];
+	float teleop_cmd[7], tau_fbk[7], Gq[7];
 
 	myKINOVA_CMD ROB_CMD;
 	myROB_PARAMS ROB_PARAMS;
@@ -199,6 +199,13 @@ public:
 			qd[i] = base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
 			qdd[i] = 0;
 			tau[i] = base_feedback.actuators(i).torque();
+			tau_fbk[i] = tau[i];
+
+			dynamics->setPosition(q);
+			dynamics->setVelocity(qd);
+			dynamics->setAcceleration(qdd);
+			dynamics->inverseDynamics();
+			Gq[i] = dynamics->getTorque()[i];
 			// add tau also
 		}
 
@@ -276,16 +283,12 @@ public:
 
 		for (i = 0; i < ACTUATOR_COUNT; ++i)
 		{
+
 			if (i >= ROB_LOG.focus)
 			{
-				if (ROB_CMD.CTRL_MODE == 0 || ROB_CMD.CTRL_MODE == 4) // standard IMPEDANCE CONTROL (0) or Teleoperation (4)
+				if (ROB_CMD.CTRL_MODE == 0) // standard IMPEDANCE CONTROL (0)
 				{
-					if (role == 0) {
-						ROB_CMD.ext_tau[i] = 0; // for the master robot
-					}
-					else if (role == 1) {
-						ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')); // for the slave robot
-					}
+					ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r'));
 					
 				}
 				else if (ROB_CMD.CTRL_MODE == 1)
@@ -299,6 +302,15 @@ public:
 				else if (ROB_CMD.CTRL_MODE == 3) // gravity compensation
 				{
 					ROB_CMD.ext_tau[i] = 0;
+				}
+				else if (ROB_CMD.CTRL_MODE == 4) // Teleoperation (4)
+				{
+					if (role == 0) {
+						ROB_CMD.ext_tau[i] = 0; // for the master robot
+					}
+					else if (role == 1) {
+						ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')); // for the slave robot
+					}
 				}
 
 				if (ROB_CMD.ext_tau[i] > ext_tau_limit[i])
@@ -593,8 +605,13 @@ public:
 		if (ROB_PARAMS.CTRL_MODE == 4) { // only for teleoperation
 			for (i = 0; i < ACTUATOR_COUNT; ++i)
 			{
-				ROB_CMD.des_q[i] = cmd_input[i];
-				ROB_CMD.tau_ctrl[i] = 0;
+				if (role == 0) {
+					ROB_CMD.tau_ctrl[i] = cmd_input[i]; // master expects a torque feedback from slave
+				}
+				else if (role == 1) {
+					ROB_CMD.des_q[i] = cmd_input[i]; // slave expects a position command from master
+					ROB_CMD.tau_ctrl[i] = 0;
+				}
 			}
 		}
 

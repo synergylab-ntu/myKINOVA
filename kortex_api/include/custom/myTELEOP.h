@@ -7,6 +7,7 @@ public:
 	myPARAMS master_PARAMS;
 	myPARAMS slave_PARAMS;
 	int i;
+	float tau_cmd_master[7];
 
 	myKINOVA getROB_OBJ(myPARAMS PARAMS_IN, int role_in) {
 		myKINOVA myROB(PARAMS_IN, role_in);
@@ -33,11 +34,17 @@ public:
 					TELEOP_LOGIT();
 
 					TELEOP_GETFBK();
-					
+
 					getTELEOP_CMD(); // take the getFBK results and put them in their respective ROB_CMD tumblers
-					
+
 					SLAVE.setCMD(SLAVE.ROB_CMD.des_q); // should discern between using MATLAB UDP input as command or teleoperation input as command
-					MASTER.setCMD(MASTER.ROB_CMD.des_q); // should discern between using MATLAB UDP input as command or teleoperation input as command
+				
+					for (i = 0; i < 7; i++)
+					{
+						tau_cmd_master[i] = SLAVE.tau_fbk[i] + SLAVE.Gq[i];
+					}
+					
+					MASTER.setCMD(tau_cmd_master); // should discern between using MATLAB UDP input as command or teleoperation input as command
 
 					TELEOP_sendCMD();
 				}
