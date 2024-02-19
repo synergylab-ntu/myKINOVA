@@ -46,9 +46,10 @@ public:
 	k_api::Base::BaseClient* base;
 	k_api::BaseCyclic::BaseCyclicClient* base_cyclic;
 	k_api::ActuatorConfig::ActuatorConfigClient* actuator_config;
-	bool gripper;
+	//bool gripper;
 	k_api::ActuatorConfig::ControlModeInformation control_mode_message;
 	int role;
+	float myK = 10;
 	
 
 	//// data management variables
@@ -57,7 +58,7 @@ public:
 
 	int ACTUATOR_COUNT = 7;
 	
-	float teleop_cmd[7], tau_fbk[7], Gq[7];
+	float tau_fbk[7], Gq[7];
 
 	myKINOVA_CMD ROB_CMD;
 	myROB_PARAMS ROB_PARAMS;
@@ -133,7 +134,8 @@ public:
 		qdd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		tau << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		B << 5.5220, 5.7140, 5.2075, 5.4825, 4.7267, 4.7631, 7.6092;
-		K << 10, 10, 10, 10, 10, 10, 10;
+		//K << 10, 10, 10, 10, 10, 10, 10;
+		K << myK, myK, myK, myK, myK, myK, myK;
 
 
 		std::cout << "im here3" << std::endl;
@@ -201,12 +203,17 @@ public:
 			tau[i] = base_feedback.actuators(i).torque();
 			tau_fbk[i] = tau[i];
 
-			dynamics->setPosition(q);
-			dynamics->setVelocity(qd);
-			dynamics->setAcceleration(qdd);
-			dynamics->inverseDynamics();
-			Gq[i] = dynamics->getTorque()[i];
+			
 			// add tau also
+		}
+
+		dynamics->setPosition(q);
+		dynamics->setVelocity(qd);
+		dynamics->setAcceleration(qdd);
+		dynamics->inverseDynamics();
+		for (i = 0; i < ACTUATOR_COUNT; i++)
+		{
+			Gq[i] = dynamics->getTorque()[i];
 		}
 
 		ROB_UDP = setUDP(ROB_UDP);
@@ -225,7 +232,7 @@ public:
 		}
 
 		// Initialise the gripper position, velocity and force
-		if (gripper)
+		if (ROB_PARAMS.gripper_val)
 		{
 			float gripper_initial_position = base_feedback.interconnect().gripper_feedback().motor()[0].position();
 			base_command.mutable_interconnect()->mutable_command_id()->set_identifier(0);
@@ -306,24 +313,41 @@ public:
 				else if (ROB_CMD.CTRL_MODE == 4) // Teleoperation (4)
 				{
 					if (role == 0) {
-						ROB_CMD.ext_tau[i] = 0; // for the master robot
+						ROB_CMD.ext_tau[i] = ROB_CMD.tau_ctrl[i]; // for the master robot
 					}
 					else if (role == 1) {
 						ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')); // for the slave robot
 					}
 				}
 
-				if (ROB_CMD.ext_tau[i] > ext_tau_limit[i])
-				{
-					ROB_CMD.ext_tau[i] = ext_tau_limit[i];
+				if (ROB_CMD.CTRL_MODE == 4) {
+					// no filter here
+				}
+				else {
+					if (ROB_CMD.ext_tau[i] > ext_tau_limit[i])
+					{
+						ROB_CMD.ext_tau[i] = ext_tau_limit[i];
+					}
+
+					if (ROB_CMD.ext_tau[i] < -ext_tau_limit[i])
+					{
+						ROB_CMD.ext_tau[i] = -ext_tau_limit[i];
+					}
 				}
 
-				if (ROB_CMD.ext_tau[i] < -ext_tau_limit[i])
-				{
-					ROB_CMD.ext_tau[i] = -ext_tau_limit[i];
+				if (ROB_CMD.CTRL_MODE == 4) {
+
+					if (role == 0) {// yes damping for master
+						ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.ext_tau[i];
+					}
+					else if (role == 1) {// no damping for slave
+						ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + ROB_CMD.ext_tau[i];
+					}
+				}
+				else { // for all other control policies
+					ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.ext_tau[i];
 				}
 
-				ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.ext_tau[i];
 				base_command.mutable_actuators(i)->set_torque_joint(ROB_CMD.tau_cmd[i]);
 				base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
 			}
@@ -335,7 +359,7 @@ public:
 	}
 
 	void gripper_KB_CMD() {
-		if (gripper)
+		if (ROB_PARAMS.gripper_val)
 		{
 			gripper_position = base_feedback.interconnect().gripper_feedback().motor()[0].position();
 			if (GetKeyState('W') & 0x8000)
@@ -602,23 +626,23 @@ public:
 			}
 		}
 
-		if (ROB_PARAMS.CTRL_MODE == 4) { // only for teleoperation
-			for (i = 0; i < ACTUATOR_COUNT; ++i)
-			{
-				if (role == 0) {
-					ROB_CMD.tau_ctrl[i] = cmd_input[i]; // master expects a torque feedback from slave
-				}
-				else if (role == 1) {
-					ROB_CMD.des_q[i] = cmd_input[i]; // slave expects a position command from master
-					ROB_CMD.tau_ctrl[i] = 0;
-				}
-			}
-		}
+		//if (ROB_PARAMS.CTRL_MODE == 4) { // only for teleoperation
+		//	for (i = 0; i < ACTUATOR_COUNT; ++i)
+		//	{
+		//		if (role == 0) {
+		//			ROB_CMD.tau_ctrl[i] = cmd_input[i]; // master expects a torque feedback from slave
+		//		}
+		//		else if (role == 1) {
+		//			ROB_CMD.des_q[i] = cmd_input[i]; // slave expects a position command from master
+		//			ROB_CMD.tau_ctrl[i] = 0;
+		//		}
+		//	}
+		//}
 
 	}
 
 	bool ROBOT_Gq(bool gripper_in) {
-		gripper = gripper_in;
+		ROB_PARAMS.gripper_val = gripper_in;
 		quickSETUP();
 		init_LOG();
 
@@ -662,27 +686,39 @@ public:
 	}
 
 	myKINOVA() {// default constructor
+		myK = 10;
 	}
 
 	myKINOVA(std::string robot_model_in, std::string ROBOT_IP_in, int CTRL_MODE_IN, u_short SEND_PORT_IN, u_short RECV_PORT_IN, const char* SEND_IP_ADDRESS_IN, const char* RECV_IP_ADDRESS_IN, int DURATION_IN, bool gripper_val) {
 		ROB_CMD = set_ROB_CMD(CTRL_MODE_IN);		
 		ROB_PARAMS = set_ROB_PARAMS(setPARAMS(robot_model_in, ROBOT_IP_in, CTRL_MODE_IN, SEND_PORT_IN, RECV_PORT_IN, SEND_IP_ADDRESS_IN, RECV_IP_ADDRESS_IN, DURATION_IN, gripper_val));
+		myK = 10;
 	}
 
 	myKINOVA(std::string robot_model_in, std::string ROBOT_IP_in, int CTRL_MODE_IN, u_short SEND_PORT_IN, u_short RECV_PORT_IN, const char* SEND_IP_ADDRESS_IN, const char* RECV_IP_ADDRESS_IN, int DURATION_IN, bool gripper_val, int role_in) {
 		ROB_CMD = set_ROB_CMD(CTRL_MODE_IN);
 		ROB_PARAMS = set_ROB_PARAMS(setPARAMS(robot_model_in, ROBOT_IP_in, CTRL_MODE_IN, SEND_PORT_IN, RECV_PORT_IN, SEND_IP_ADDRESS_IN, RECV_IP_ADDRESS_IN, DURATION_IN, gripper_val));
 		role = role_in;
+		myK = 10;
 	}
 
 	myKINOVA(myPARAMS PARAMS_IN) {
 		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
 		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+		myK = 10;
 	}
 
 	myKINOVA(myPARAMS PARAMS_IN, int role_in) {
 		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
 		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
 		role = role_in;
+		myK = 10;
+	}
+
+	myKINOVA(myPARAMS PARAMS_IN, int role_in, float k_in) {
+		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
+		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+		role = role_in;
+		myK = k_in;
 	}
 };

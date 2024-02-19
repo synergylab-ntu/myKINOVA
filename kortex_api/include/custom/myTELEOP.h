@@ -14,9 +14,16 @@ public:
 		return myROB;
 	}
 
-	bool teleoperate() {
-		bool gripper = TRUE;
+	myKINOVA getROB_OBJ_K(myPARAMS PARAMS_IN, int role_in, float k_in) {
+		myKINOVA myROB(PARAMS_IN, role_in, k_in);
+		return myROB;
+	}
+
+	bool teleoperate(bool gripper_in) {
+		bool gripper = gripper_in;
 		
+		initiate_robots();
+
 		try
 		{// initialize low level torque control and UDP communication
 			INIT_LOWLEVELnUDP();
@@ -35,16 +42,7 @@ public:
 
 					TELEOP_GETFBK();
 
-					getTELEOP_CMD(); // take the getFBK results and put them in their respective ROB_CMD tumblers
-
-					SLAVE.setCMD(SLAVE.ROB_CMD.des_q); // should discern between using MATLAB UDP input as command or teleoperation input as command
-				
-					for (i = 0; i < 7; i++)
-					{
-						tau_cmd_master[i] = SLAVE.tau_fbk[i] + SLAVE.Gq[i];
-					}
-					
-					MASTER.setCMD(tau_cmd_master); // should discern between using MATLAB UDP input as command or teleoperation input as command
+					setTELEOP_CMD(); // take the getFBK results and put them in their respective ROB_CMD tumblers
 
 					TELEOP_sendCMD();
 				}
@@ -68,23 +66,28 @@ public:
 		return MASTER.return_status;
 	}
 
-	void getTELEOP_CMD() {
+	void setTELEOP_CMD() {
 		for (i = 0; i < MASTER.ACTUATOR_COUNT; i++)
 		{
-			SLAVE.ROB_CMD.des_q[i] = MASTER.q[i];
+			SLAVE.ROB_CMD.des_q[i] = MASTER.q[i];								// slave expects a position command from master
+			MASTER.ROB_CMD.tau_ctrl[i] = SLAVE.tau_fbk[i] + SLAVE.Gq[i];		// master expects a torque feedback from slave
 		}
+		//SLAVE.setCMD(SLAVE.ROB_CMD.des_q);
+		//MASTER.setCMD(MASTER.ROB_CMD.des_q);
 	}
 	void initiate_robots() {
 		MASTER.quickSETUP();
-		MASTER.init_LOG();
 		SLAVE.quickSETUP();
+
+		MASTER.init_LOG();
 		SLAVE.init_LOG();
 	}
 
 	void INIT_LOWLEVELnUDP() {
 		MASTER.initialize_torque_control();
-		MASTER.init_UDP();
 		SLAVE.initialize_torque_control();
+
+		MASTER.init_UDP();
 		SLAVE.init_UDP();
 	}
 
@@ -104,9 +107,10 @@ public:
 	}
 
 	void CLEANUP() {
+		SLAVE.myCLEANUP(); // stop the slave first...
 		MASTER.myCLEANUP();
+
 		MASTER.myWRITE();
-		SLAVE.myCLEANUP();
 		SLAVE.myWRITE();
 	}
 
@@ -119,5 +123,12 @@ public:
 		slave_PARAMS = S_PARAMS_IN;
 		MASTER = getROB_OBJ(master_PARAMS, 0); // role = 0 for master - VERY IMPORTANT
 		SLAVE = getROB_OBJ(slave_PARAMS, 1); // role = 1 for slave - VERY IMPORTANT
+	}
+
+	myTELEOP(myPARAMS M_PARAMS_IN, myPARAMS S_PARAMS_IN, float k_in) {
+		master_PARAMS = M_PARAMS_IN;
+		slave_PARAMS = S_PARAMS_IN;
+		MASTER = getROB_OBJ_K(master_PARAMS, 0, k_in); // role = 0 for master - VERY IMPORTANT
+		SLAVE = getROB_OBJ_K(slave_PARAMS, 1, k_in); // role = 1 for slave - VERY IMPORTANT
 	}
 };
