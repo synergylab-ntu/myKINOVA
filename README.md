@@ -12,9 +12,11 @@ Towards building contact rich manipulation frameworks with the Kinova gen3 ultra
 1. Download the [source code and additional examples](https://www.roboticslibrary.org/download) and extract the archives.
 2. In a cmd:
 ```console
-C:\synergylab\luigi>$ cmake -E tar x rl-0.7.0.zip
-luigi@synergylab:~$ cmake -E tar x rl-examples-0.7.0.zip
-luigi@synergylab:~$ cd rl-0.7.0
-luigi@synergylab:~$ mkdir build
-luigi@synergylab:~$ mkdir build
+cmake -E tar x rl-0.7.0.zip
+cmake -E tar x rl-examples-0.7.0.zip
+cd rl-0.7.0
+mkdir build
+cd build
+cmake -G "Visual Studio 16 2019" -D CMAKE_INSTALL_PREFIX="C:\Program Files\Robotics Library\0.7.0\MSVC\14.1\x64" ..
+cmake --build . --config Release --target INSTALL
 ```
