@@ -9,9 +9,12 @@ Towards building contact rich manipulation frameworks with the Kinova gen3 ultra
 5. Install [Robotics Library](https://github.com/roboticslibrary/rl/releases/download/0.7.0/rl-0.7.0-msvc-14.1-x64.msi)
 
 ### Build Robotics Library
-1. Download the (source code and additional examples)[https://www.roboticslibrary.org/download] and extract the archives.
+1. Download the [source code and additional examples](https://www.roboticslibrary.org/download) and extract the archives.
 2. In a cmd:
 ```console
-luigi@synergylab:~$ 
-foo
+C:\synergylab\luigi>$ cmake -E tar x rl-0.7.0.zip
+luigi@synergylab:~$ cmake -E tar x rl-examples-0.7.0.zip
+luigi@synergylab:~$ cd rl-0.7.0
+luigi@synergylab:~$ mkdir build
+luigi@synergylab:~$ mkdir build
 ```
