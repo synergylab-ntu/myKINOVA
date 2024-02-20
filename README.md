@@ -20,3 +20,9 @@ cd build
 cmake -G "Visual Studio 16 2019" -D CMAKE_INSTALL_PREFIX="C:\Program Files\Robotics Library\0.7.0\MSVC\14.1\x64" ..
 cmake --build . --config Release --target INSTALL
 ```
+## Unpack myKINOVA
+1. Clone this repository via Visual Studio
+2. Use the CMakeLists to set things up : Project -> Configure kortexApiCppExamples
+3. Build -> Build all
+
+fin
