@@ -73,6 +73,7 @@ public:
     unsigned int  sz = sizeof(iVal);
 
     float UDP_q[7] = { 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
+    float UDP_gripper = 0.0f;
     float UDP_tau[7] = { 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
 
     void setup_UDP()
@@ -259,8 +260,16 @@ public:
                     UDP_q[delimiter_idx] = num_float;
                 }
 
-                if (CTRL_MODE > 0 && delimiter_idx <= 13) {
+                if ((CTRL_MODE == 1 || CTRL_MODE ==2) && delimiter_idx <= 13) {
                     UDP_tau[delimiter_idx-7] = num_float;
+                }
+
+                if (CTRL_MODE == 5 && delimiter_idx <= 6) {
+                    UDP_q[delimiter_idx] = num_float;
+                }
+
+                if (CTRL_MODE == 5 && delimiter_idx == 7) {
+                    UDP_gripper = num_float;
                 }
 
                 myMATLAB_DATA.erase(0, STRINGpos + delimiter.length());
@@ -269,13 +278,18 @@ public:
                     {
                         break;
                     }
-                    if (CTRL_MODE > 0 && delimiter_idx > 13)
+                    if ((CTRL_MODE == 1 || CTRL_MODE == 2) && delimiter_idx > 13)
+                    {
+                        break;
+                    }
+                    if (CTRL_MODE == 5 && delimiter_idx > 7)
                     {
                         break;
                     }
             }
             std::cout << "q1 =" << UDP_q[0] << " q2 =" << UDP_q[1] << " q3 =" << UDP_q[2] << " q4 =" << UDP_q[3] << " q5 =" << UDP_q[4] << " q6 =" << UDP_q[5] << " q7 =" << UDP_q[6] << std::endl;
             std::cout << "tau1 =" << UDP_tau[0] << " tau2 =" << UDP_tau[1] << " tau3 =" << UDP_tau[2] << " tau4 =" << UDP_tau[3] << " tau5 =" << UDP_tau[4] << " tau6 =" << UDP_tau[5] << " tau7 =" << UDP_tau[6] << std::endl;
+            std::cout << "gripper value is : " << UDP_gripper << std::endl;
         }
         else
         {

@@ -1,4 +1,17 @@
 
+#include <string>
+
+#include <BaseClientRpc.h>
+#include <InterconnectConfigClientRpc.h>
+#include <SessionManager.h>
+#include <DeviceManagerClientRpc.h>
+
+#include <RouterClient.h>
+#include <TransportClientTcp.h>
+#include <TransportClientUdp.h>
+
+namespace k_api = Kinova::Api;
+
 #include <thread>
 
 class myKINOVA_CMD {
@@ -9,13 +22,7 @@ public:
 	float ext_tau[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 	float tau_ctrl[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 	float des_q[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-
-	void setCMD(float tau_ctrl_IN[7], float des_q_IN[7]) {
-		for (int i = 0; i < 7; i++) {
-			des_q[i] = des_q_IN[i];
-			tau_ctrl[i] = tau_ctrl_IN[i];
-		}
-	}
+	float des_gripperPOS = 0.0f;
 
 	myKINOVA_CMD() { // important to keep this default constructor, else you cannot define it as a variable in another class.
 
@@ -29,6 +36,8 @@ public:
 class myKINOVA {
 
 public:
+
+	
 	// Kinova API variables
 	KINOVA* robot_tcp;
 	KINOVA* robot_udp;
@@ -49,7 +58,7 @@ public:
 	//bool gripper;
 	k_api::ActuatorConfig::ControlModeInformation control_mode_message;
 	int role;
-	float myK = 10;
+	float myK = 10, myB = 6;
 	
 
 	//// data management variables
@@ -133,8 +142,9 @@ public:
 		qd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		qdd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		tau << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-		B << 5.5220, 5.7140, 5.2075, 5.4825, 4.7267, 4.7631, 7.6092;
-		//K << 10, 10, 10, 10, 10, 10, 10;
+		//B << 5.5220, 5.7140, 5.2075, 5.4825, 4.7267, 4.7631, 7.6092;
+		B << myB, myB, myB, myB, myB, myB, myB;
+		
 		K << myK, myK, myK, myK, myK, myK, myK;
 
 
@@ -319,6 +329,10 @@ public:
 						ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')); // for the slave robot
 					}
 				}
+				else if (ROB_CMD.CTRL_MODE == 5)
+				{
+					ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r'));
+				}
 
 				if (ROB_CMD.CTRL_MODE == 4) {
 					// no filter here
@@ -355,30 +369,47 @@ public:
 
 		misc_KB_inputs();
 		gripper_KB_CMD();
-
+		gripper_UDP_CMD();
 	}
 
-	void gripper_KB_CMD() {
-		if (ROB_PARAMS.gripper_val)
-		{
-			gripper_position = base_feedback.interconnect().gripper_feedback().motor()[0].position();
-			if (GetKeyState('W') & 0x8000)
+	void gripper_UDP_CMD() {
+		if (ROB_CMD.CTRL_MODE == 5) {
+			if (ROB_PARAMS.gripper_val)
 			{
-				if (gripper_position + 10.0 > 100.0)
-					m_gripper_motor_command->set_position(100.0);
-				else
-					m_gripper_motor_command->set_position(gripper_position + 10.0);
+				gripper_position = base_feedback.interconnect().gripper_feedback().motor()[0].position();
+				std::cout << "Gripper command should be :" << ROB_CMD.des_gripperPOS << std::endl;
+				m_gripper_motor_command->set_position(ROB_CMD.des_gripperPOS);
 				m_gripper_motor_command->set_velocity(40.0);
 				m_gripper_motor_command->set_force(100.0);
 			}
-			if (GetKeyState('S') & 0x8000)
+		}
+	}
+
+	void gripper_KB_CMD() {
+		if (ROB_CMD.CTRL_MODE == 5)
+		{ }
+		else {
+			if (ROB_PARAMS.gripper_val)
 			{
-				if (gripper_position - 10.0 < 0.0)
-					m_gripper_motor_command->set_position(0.0);
-				else
-					m_gripper_motor_command->set_position(gripper_position - 10.0);
-				m_gripper_motor_command->set_velocity(40.0);
-				m_gripper_motor_command->set_force(1.0);
+				gripper_position = base_feedback.interconnect().gripper_feedback().motor()[0].position();
+				if (GetKeyState('W') & 0x8000)
+				{
+					if (gripper_position + 10.0 > 100.0)
+						m_gripper_motor_command->set_position(100.0);
+					else
+						m_gripper_motor_command->set_position(gripper_position + 10.0);
+					m_gripper_motor_command->set_velocity(40.0);
+					m_gripper_motor_command->set_force(100.0);
+				}
+				if (GetKeyState('S') & 0x8000)
+				{
+					if (gripper_position - 10.0 < 0.0)
+						m_gripper_motor_command->set_position(0.0);
+					else
+						m_gripper_motor_command->set_position(gripper_position - 10.0);
+					m_gripper_motor_command->set_velocity(40.0);
+					m_gripper_motor_command->set_force(1.0);
+				}
 			}
 		}
 	}
@@ -626,6 +657,16 @@ public:
 			}
 		}
 
+		if (ROB_PARAMS.CTRL_MODE == 5) { // real time control with gripper input from MATLAB v4
+			for (i = 0; i < ACTUATOR_COUNT; ++i)
+			{
+				ROB_CMD.des_q[i] = ROB_UDP.UDP_q[i];
+				ROB_CMD.tau_ctrl[i] = ROB_UDP.UDP_tau[i];
+			}
+			ROB_CMD.des_gripperPOS = ROB_UDP.UDP_gripper;
+			std::cout << "ROB_UDP gripper value is : " << ROB_UDP.UDP_gripper << std::endl;
+		}
+
 		//if (ROB_PARAMS.CTRL_MODE == 4) { // only for teleoperation
 		//	for (i = 0; i < ACTUATOR_COUNT; ++i)
 		//	{
@@ -706,6 +747,19 @@ public:
 		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
 		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
 		myK = 10;
+	}
+
+	myKINOVA(myPARAMS PARAMS_IN, float k_in) {
+		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
+		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+		myK = k_in;
+	}
+
+	myKINOVA(myPARAMS PARAMS_IN, float k_in, float b_in) {
+		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
+		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+		myK = k_in;
+		myB = b_in;
 	}
 
 	myKINOVA(myPARAMS PARAMS_IN, int role_in) {

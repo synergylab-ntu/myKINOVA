@@ -577,7 +577,7 @@ public:
                     log_file << DATA.ext_tau_log[i][j] << ",";
                 }
 
-                std::cout << "Inside the loop at iteration :" << i << std::endl;
+                //std::cout << "Inside the loop at iteration :" << i << std::endl;
 
                 log_file << i << "\n";
             }
