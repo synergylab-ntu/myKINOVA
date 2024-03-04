@@ -12,7 +12,7 @@ int main()
 	int CTRL_MODE = 4;
 	int DURATION = 1000;
 
-	std::string MASTER_IP = "192.180.0.109";
+	std::string MASTER_IP = "192.180.0.108";
 	std::string SLAVE_IP = "192.180.0.107";
 
 	//Kinova with Robotiq 2f 85 Gripper

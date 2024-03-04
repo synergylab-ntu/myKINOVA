@@ -107,9 +107,35 @@ public:
 	}
 
 	void CLEANUP() {
-		SLAVE.myCLEANUP(); // stop the slave first...
-		MASTER.myCLEANUP();
+		// As opposed to using myKINOVA::myCLEANUP(); - the iterative shutdown of the actuators manipulator by manipulator takes time
+		// Instead one should ensure the resetservoing mode is done actuator by actuator for all manipulators, and NOT manipulator by manipulator.
+		SLAVE.ROB_LOG.data_count_final = SLAVE.ROB_LOG.data_count;
+		MASTER.ROB_LOG.data_count_final = MASTER.ROB_LOG.data_count;
+		
+		std::cout << "Ending Gravity Compensation" << std::endl;
+		std::cout << "Change Control Mode - Position" << std::endl;
 
+		auto control_mode_message = k_api::ActuatorConfig::ControlModeInformation();
+		control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+
+		for (i = 0; i < MASTER.ACTUATOR_COUNT; i++)
+		{
+			MASTER.actuator_config->SetControlMode(control_mode_message, i + 1);
+			SLAVE.actuator_config->SetControlMode(control_mode_message, i + 1);
+		}
+
+		std::cout << "Setting single level servoing" << std::endl;
+		//Set the servoing mode back to Single Level
+		MASTER.servoing_mode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
+		SLAVE.servoing_mode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
+		MASTER.base->SetServoingMode(MASTER.servoing_mode);
+		SLAVE.base->SetServoingMode(SLAVE.servoing_mode);
+
+		// UDP clean up
+		MASTER.ROB_UDP.cleanup();
+		SLAVE.ROB_UDP.cleanup();
+
+		// write logs
 		MASTER.myWRITE();
 		SLAVE.myWRITE();
 	}
