@@ -84,8 +84,78 @@ public:
 	}
 
 	void INIT_LOWLEVELnUDP() {
-		MASTER.initialize_torque_control();
-		SLAVE.initialize_torque_control();
+		//MASTER.initialize_torque_control();
+		//SLAVE.initialize_torque_control();
+
+		MASTER.setLOWLEVEL();
+		SLAVE.setLOWLEVEL();
+
+		// Initialising low level actuator by actuator instead of manipulator by manipulator
+
+		for (i = 0; i < MASTER.ACTUATOR_COUNT; i++)
+		{
+			// Save the current actuator position, to avoid a following error
+			MASTER.base_command.add_actuators()->set_position(MASTER.base_feedback.actuators(i).position());
+			SLAVE.base_command.add_actuators()->set_position(SLAVE.base_feedback.actuators(i).position());
+			
+			MASTER.q[i] = (MASTER.base_feedback.actuators(i).position() * rl::math::DEG2RAD);
+			MASTER.qd[i] = MASTER.base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
+			MASTER.ROB_CMD.des_q[i] = MASTER.q[i]; // initialising the des_q to the home configuration you start from - VERY IMPORTANT
+			MASTER.ROB_CMD.tau_ctrl[i] = 0;
+
+			SLAVE.q[i] = (SLAVE.base_feedback.actuators(i).position() * rl::math::DEG2RAD);
+			SLAVE.qd[i] = SLAVE.base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
+			SLAVE.ROB_CMD.des_q[i] = SLAVE.q[i]; // initialising the des_q to the home configuration you start from - VERY IMPORTANT
+			SLAVE.ROB_CMD.tau_ctrl[i] = 0;
+		}
+
+		// Initialise the gripper position, velocity and force
+		if (MASTER.ROB_PARAMS.gripper_val)
+		{
+			float gripper_initial_position = MASTER.base_feedback.interconnect().gripper_feedback().motor()[0].position();
+			MASTER.base_command.mutable_interconnect()->mutable_command_id()->set_identifier(0);
+			MASTER.m_gripper_motor_command = MASTER.base_command.mutable_interconnect()->mutable_gripper_command()->add_motor_cmd();
+			MASTER.m_gripper_motor_command->set_position(gripper_initial_position);
+			MASTER.m_gripper_motor_command->set_velocity(0.0);
+			MASTER.m_gripper_motor_command->set_force(100.0);
+		}
+
+
+		// Initialise the gripper position, velocity and force
+		if (SLAVE.ROB_PARAMS.gripper_val)
+		{
+			float gripper_initial_position = SLAVE.base_feedback.interconnect().gripper_feedback().motor()[0].position();
+			SLAVE.base_command.mutable_interconnect()->mutable_command_id()->set_identifier(0);
+			SLAVE.m_gripper_motor_command = SLAVE.base_command.mutable_interconnect()->mutable_gripper_command()->add_motor_cmd();
+			SLAVE.m_gripper_motor_command->set_position(gripper_initial_position);
+			SLAVE.m_gripper_motor_command->set_velocity(0.0);
+			SLAVE.m_gripper_motor_command->set_force(100.0);
+		}
+
+		std::cout << "Sending first frame" << std::endl;
+		// Send a first frame
+		MASTER.base_feedback_async = MASTER.base_cyclic->Refresh_async(MASTER.base_command);
+		SLAVE.base_feedback_async = SLAVE.base_cyclic->Refresh_async(SLAVE.base_command);
+
+
+		std::cout << "Change Control Mode - Torque" << std::endl;
+		std::cout << "Starting Gravity Compensation" << std::endl;
+
+		// Set actuator in torque mode now that the command is equal to measure
+		auto control_mode_message = k_api::ActuatorConfig::ControlModeInformation();
+		control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::TORQUE);
+		for (i = 0; i < MASTER.ACTUATOR_COUNT; i++)
+		{
+			if (i >= MASTER.ROB_LOG.focus)
+			{
+				MASTER.actuator_config->SetControlMode(control_mode_message, i + 1);
+				SLAVE.actuator_config->SetControlMode(control_mode_message, i + 1);
+			}
+		}
+
+
+		//MASTER.init_TORQUE_CONTROL();
+		//SLAVE.init_TORQUE_CONTROL();
 
 		MASTER.init_UDP();
 		SLAVE.init_UDP();
