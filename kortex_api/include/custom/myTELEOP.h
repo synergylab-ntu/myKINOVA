@@ -21,6 +21,8 @@ public:
 
 	bool teleoperate(bool gripper_in) {
 		bool gripper = gripper_in;
+		MASTER.ROB_PARAMS.gripper_val = gripper;
+		SLAVE.ROB_PARAMS.gripper_val = gripper;
 		
 		initiate_robots();
 
