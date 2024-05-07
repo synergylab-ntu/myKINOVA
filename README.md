@@ -10,7 +10,7 @@ Towards building contact rich manipulation frameworks with the Kinova gen3 ultra
 
 ### Build Robotics Library
 1. Download the [source code and additional examples](https://www.roboticslibrary.org/download) and extract the archives.
-2. In a cmd:
+2. In a cmd **opened as administrator**:
 ```console
 cmake -E tar x rl-0.7.0.zip
 cmake -E tar x rl-examples-0.7.0.zip
