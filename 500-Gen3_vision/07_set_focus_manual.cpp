@@ -30,6 +30,7 @@
 #include <chrono>
 
 #include "utilities.h"
+#include <iostream>
 
 namespace k_api = Kinova::Api;
 
@@ -93,6 +94,31 @@ void example_routed_vision_do_autofocus_action(k_api::VisionConfig::VisionConfig
     k_api::VisionConfig::SensorFocusAction sensor_focus_action;
     sensor_focus_action.set_sensor(k_api::VisionConfig::Sensor::SENSOR_COLOR);
 
+    std::cout << "\n\n** Example showing how to play with the auto-focus of the Color camera **" << std::endl;
+
+    std::cout << "\n-- Using Vision Config Service to disable the auto-focus --" << std::endl;
+    sensor_focus_action.set_focus_action(k_api::VisionConfig::FocusAction::FOCUSACTION_DISABLE_FOCUS);
+    vision->DoSensorFocusAction(sensor_focus_action, device_id);
+    std::cout << "-- Place or remove an object from the center of the camera, observe the focus doesn't change --" << std::endl;
+    example_wait_for_focus_action();
+
+    std::cout << "\n-- Using Vision Config Service to enable the auto-focus --" << std::endl;
+    sensor_focus_action.set_focus_action(k_api::VisionConfig::FocusAction::FOCUSACTION_START_CONTINUOUS_FOCUS);
+    vision->DoSensorFocusAction(sensor_focus_action, device_id);
+    std::cout << "-- Place an object in the center of the camera, observe the focus adjusts automatically --" << std::endl;
+    example_wait_for_focus_action();
+
+    std::cout << "\n-- Using Vision Config Service to pause the auto-focus --" << std::endl;
+    sensor_focus_action.set_focus_action(k_api::VisionConfig::FocusAction::FOCUSACTION_PAUSE_CONTINUOUS_FOCUS);
+    vision->DoSensorFocusAction(sensor_focus_action, device_id);
+    std::cout << "-- Move the object away from the center of the camera and then back, but at a different distance, observe the focus doesn't change --" << std::endl;
+    example_wait_for_focus_action();
+
+    std::cout << "\n-- Using Vision Config Service to focus now --" << std::endl;
+    sensor_focus_action.set_focus_action(k_api::VisionConfig::FocusAction::FOCUSACTION_FOCUS_NOW);
+    vision->DoSensorFocusAction(sensor_focus_action, device_id);
+    std::cout << "-- Observe the focus tried to adjust to the object in front to the camera --" << std::endl;
+    example_wait_for_focus_action();
 
     std::cout << "\n-- Using Vision Config Service to re-enable the auto-focus --" << std::endl;
     sensor_focus_action.set_focus_action(k_api::VisionConfig::FocusAction::FOCUSACTION_START_CONTINUOUS_FOCUS);
@@ -288,7 +314,22 @@ int main(int argc, char** argv)
     uint32_t vision_device_id = example_vision_get_device_id(device_manager);
     if (vision_device_id != 0)
     {
-        example_routed_vision_do_autofocus_action(vision, vision_device_id);
+        my_disable_focus(vision, vision_device_id);
+        //example_routed_vision_do_autofocus_action(vision, vision_device_id);
+        //example_routed_vision_set_focus_point(vision, vision_device_id);
+        while (!(GetKeyState('Q') & 0x8000))
+        {
+            float x_fraction, y_fraction;
+            std::cout << "Enter x_fraction" << std::endl;
+            std::cin >> x_fraction;
+            std::cout << "Enter y_fraction" << std::endl;
+            std::cin >> y_fraction;
+            
+            std::cout << "Keep pressing Q if you want to abort" << std::endl;
+            my_set_focus(vision, vision_device_id, x_fraction, y_fraction);
+            
+        }
+        //example_routed_vision_set_manual_focus(vision, vision_device_id);
     }
     else
     {
