@@ -59,6 +59,7 @@ public:
 	k_api::ActuatorConfig::ControlModeInformation control_mode_message;
 	int role;
 	float myK = 10, myB = 6;
+	float ext_tau_limit_input[7] = { 3.0f, 2.0f, 2.0f, 5.0f, 4.0f, 3.0f, 6.0f };
 	
 
 	//// data management variables
@@ -137,7 +138,8 @@ public:
 		std::cout << "im here2" << std::endl;
 		std::cout << DOF << endl;
 
-		ext_tau_limit << 3, 2, 2, 5, 4, 3, 6;
+		//ext_tau_limit_input
+		ext_tau_limit << ext_tau_limit_input[0], ext_tau_limit_input[1], ext_tau_limit_input[2], ext_tau_limit_input[3], ext_tau_limit_input[4], ext_tau_limit_input[5], ext_tau_limit_input[6];
 		q << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		qd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		qdd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -775,4 +777,25 @@ public:
 		role = role_in;
 		myK = k_in;
 	}
+
+	myKINOVA(myPARAMS PARAMS_IN, float k_in, float b_in, float ext_tau_limit_in[7]) {
+		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
+		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+		myK = k_in;
+		myB = b_in;
+		for (int j = 0; j < 7; j++) {
+			ext_tau_limit_input[j] = ext_tau_limit_in[j];
+		}
+	}
+
+	//myKINOVA(myPARAMS PARAMS_IN, int role_in, float k_in, float ext_tau_limit_in[7]) {
+	//	ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
+	//	ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
+	//	role = role_in;
+	//	myK = k_in;
+	//	for (int j = 0; j < 7; j++) {
+	//		ext_tau_limit_input[j] = ext_tau_limit_in[j];
+	//	}
+	//	//std::cout << ext_tau_limit_input[0] << std::endl;
+	//}
 };
