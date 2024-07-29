@@ -48,19 +48,29 @@ The UDP need not operate at a high frequency, the low-level torque controller of
 
 ---
 
-sd
-dfh
-dfh
-dfhsdhsfhsfh
-
 ## Mode 1 - Impedance and torque control
 <img src="media/mode1_impedance_and_torque.jpg" height="240">
+<!-- New line here... -->
+
+---
+
 
 ## Mode 2 - Torque control
 <img src="media/mode2_torque.jpg" height="240">
+<!-- New line here... -->
+
+---
+
 
 ## Mode 3 - Gravity compensation
 <img src="media/mode3_gravity.jpg" height="240">
+<!-- New line here... -->
+
+---
+Note: Kinematic calibration is needed to ensure no drift.
 
 ## Mode 5 - Impedance, torque and gripper control
 <img src="media/mode5_impedance_and_torque_and_gripper.jpg" height="240">
+<!-- New line here... -->
+
+---
