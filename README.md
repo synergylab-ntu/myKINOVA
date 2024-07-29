@@ -31,6 +31,8 @@ fin
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function shown by:
 ![Alt text](media/tau_ext_limit.jpg#right)
 
+<img src="media/tau_ext_limit.jpg#right" width="48">
+
 | I am text to the left  | ![Flowers](/media/tau_ext_limit.jpg) { width: 200px; } |
 
 ### Mode 0 - Impedance control
