@@ -27,7 +27,7 @@ cmake --build . --config Release --target INSTALL
 
 fin
 
-## Control strategies for single arm
+# Control strategies for single arm
 
 ### Saturation function
 <img align="right" src="media/tau_ext_limit.jpg" width="80">
@@ -42,28 +42,28 @@ The UDP need not operate at a high frequency, the low-level torque controller of
 | **$q$**$_{des}$     | Desired joint configuration |
 | **$\tau$**$_{cmd}$  | Joint torque command |
 
-### Mode 0 - Impedance control
+## Mode 0 - Impedance control
 <img align="right" src="media/mode0_impedance.jpg" height="240">
 
 <!-- New line here... -->
 ---
 
-### Mode 1 - Impedance and torque control
+## Mode 1 - Impedance and torque control
 <img align="right" src="media/mode1_impedance_and_torque.jpg" height="240">
 <!-- New line here... -->
 ---
 
-### Mode 2 - Torque control
+## Mode 2 - Torque control
 <img align="right" src="media/mode2_torque.jpg" height="240">
 <!-- New line here... -->
 ---
 
-### Mode 3 - Gravity compensation
+## Mode 3 - Gravity compensation
 <img align="right" src="media/mode3_gravity.jpg" height="240">
 <!-- New line here... -->
 ---
 
-### Mode 5 - Impedance, torque and gripper control
+## Mode 5 - Impedance, torque and gripper control
 <img align="right" src="media/mode5_impedance_and_torque_and_gripper.jpg" height="240">
 <!-- New line here... -->
 ---
