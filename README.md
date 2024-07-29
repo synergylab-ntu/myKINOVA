@@ -38,7 +38,10 @@ In all the strategies listed below, the external torque used to drive the robot 
 Furthermore, the UDP need not operate at a high frequency, the low-level torque controller of the robot will still function. These control strategies allow to vary the following variables
 | Variable    | Name |
 | -------- | ------- |
-| $q_{des}$  | Desired joint configuration    |
+| $\mathsymbol{q}_{des}$  | Desired joint configuration |
+| $q_{des}$  | Desired joint configuration |
+| $q_{des}$  | Desired joint configuration |
+| $q_{des}$  | Desired joint configuration |
 
 ### Mode 0 - Impedance control
 <img align="right" src="media/mode0_impedance.jpg" height="240">
