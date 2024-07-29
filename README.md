@@ -64,10 +64,12 @@ The UDP need not operate at a high frequency, the low-level torque controller of
 
 ## Mode 3 - Gravity compensation
 <img src="media/mode3_gravity.jpg" height="240">
+
+Note: Kinematic calibration is needed to ensure no drift.
+
 <!-- New line here... -->
 
 ---
-Note: Kinematic calibration is needed to ensure no drift.
 
 ## Mode 5 - Impedance, torque and gripper control
 <img src="media/mode5_impedance_and_torque_and_gripper.jpg" height="240">
