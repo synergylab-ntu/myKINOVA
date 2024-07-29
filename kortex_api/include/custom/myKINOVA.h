@@ -19,10 +19,10 @@ public:
 	int CTRL_MODE = 0;
 	// CMD variables
 	float tau_cmd[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-	float ext_tau[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	float tau_ext[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 	float tau_ctrl[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-	float des_q[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-	float des_gripperPOS = 0.0f;
+	float q_des[7] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	float d_G_CMD = 0.0f;
 
 	myKINOVA_CMD() { // important to keep this default constructor, else you cannot define it as a variable in another class.
 
@@ -45,7 +45,7 @@ public:
 	std::shared_ptr<rl::mdl::Model> model;
 	rl::mdl::Kinematic* kinematic;
 	rl::mdl::Dynamic* dynamics;
-	rl::math::Vector q, qd, qdd, tau, K, B, des_q, ext_tau_limit;
+	rl::math::Vector q, qd, qdd, tau, K, B, q_des, tau_ext_limit;
 	size_t DOF;
 	k_api::BaseCyclic::Feedback base_feedback;
 	k_api::BaseCyclic::Command  base_command;
@@ -59,7 +59,7 @@ public:
 	k_api::ActuatorConfig::ControlModeInformation control_mode_message;
 	int role;
 	float myK = 10, myB = 6;
-	float ext_tau_limit_input[7] = { 3.0f, 2.0f, 2.0f, 5.0f, 4.0f, 3.0f, 6.0f };
+	float tau_ext_limit_input[7] = { 3.0f, 2.0f, 2.0f, 5.0f, 4.0f, 3.0f, 6.0f };
 	
 
 	//// data management variables
@@ -133,13 +133,13 @@ public:
 		tau = rl::math::Vector(DOF);
 		B = rl::math::Vector(DOF);
 		K = rl::math::Vector(DOF);
-		ext_tau_limit = rl::math::Vector(DOF);
+		tau_ext_limit = rl::math::Vector(DOF);
 
 		std::cout << "im here2" << std::endl;
 		std::cout << DOF << endl;
 
-		//ext_tau_limit_input
-		ext_tau_limit << ext_tau_limit_input[0], ext_tau_limit_input[1], ext_tau_limit_input[2], ext_tau_limit_input[3], ext_tau_limit_input[4], ext_tau_limit_input[5], ext_tau_limit_input[6];
+		//tau_ext_limit_input
+		tau_ext_limit << tau_ext_limit_input[0], tau_ext_limit_input[1], tau_ext_limit_input[2], tau_ext_limit_input[3], tau_ext_limit_input[4], tau_ext_limit_input[5], tau_ext_limit_input[6];
 		q << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		qd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 		qdd << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
@@ -239,7 +239,7 @@ public:
 			base_command.add_actuators()->set_position(base_feedback.actuators(i).position());
 			q[i] = (base_feedback.actuators(i).position() * rl::math::DEG2RAD);
 			qd[i] = base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
-			ROB_CMD.des_q[i] = q[i]; // initialising the des_q to the home configuration you start from - VERY IMPORTANT
+			ROB_CMD.q_des[i] = q[i]; // initialising the q_des to the home configuration you start from - VERY IMPORTANT
 			ROB_CMD.tau_ctrl[i] = 0;
 		}
 
@@ -307,61 +307,61 @@ public:
 			{
 				if (ROB_CMD.CTRL_MODE == 0) // standard IMPEDANCE CONTROL (0)
 				{
-					ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r'));
+					ROB_CMD.tau_ext[i] = (K[i] * calculate_delta_q(ROB_CMD.q_des[i], q[i], 'r'));
 					
 				}
 				else if (ROB_CMD.CTRL_MODE == 1)
 				{
-					ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')) + ROB_CMD.tau_ctrl[i];
+					ROB_CMD.tau_ext[i] = (K[i] * calculate_delta_q(ROB_CMD.q_des[i], q[i], 'r')) + ROB_CMD.tau_ctrl[i];
 				}
 				else if (ROB_CMD.CTRL_MODE == 2)
 				{
-					ROB_CMD.ext_tau[i] = ROB_CMD.tau_ctrl[i];
+					ROB_CMD.tau_ext[i] = ROB_CMD.tau_ctrl[i];
 				}
 				else if (ROB_CMD.CTRL_MODE == 3) // gravity compensation
 				{
-					ROB_CMD.ext_tau[i] = 0;
+					ROB_CMD.tau_ext[i] = 0;
 				}
 				else if (ROB_CMD.CTRL_MODE == 4) // Teleoperation (4)
 				{
 					if (role == 0) {
-						ROB_CMD.ext_tau[i] = ROB_CMD.tau_ctrl[i]; // for the master robot
+						ROB_CMD.tau_ext[i] = ROB_CMD.tau_ctrl[i]; // for the master robot
 					}
 					else if (role == 1) {
-						ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r')); // for the slave robot
+						ROB_CMD.tau_ext[i] = (K[i] * calculate_delta_q(ROB_CMD.q_des[i], q[i], 'r')); // for the slave robot
 					}
 				}
 				else if (ROB_CMD.CTRL_MODE == 5)
 				{
-					ROB_CMD.ext_tau[i] = (K[i] * calculate_delta_q(ROB_CMD.des_q[i], q[i], 'r'));
+					ROB_CMD.tau_ext[i] = (K[i] * calculate_delta_q(ROB_CMD.q_des[i], q[i], 'r'));
 				}
 
 				if (ROB_CMD.CTRL_MODE == 4) {
 					// no filter here
 				}
 				else {
-					if (ROB_CMD.ext_tau[i] > ext_tau_limit[i])
+					if (ROB_CMD.tau_ext[i] > tau_ext_limit[i])
 					{
-						ROB_CMD.ext_tau[i] = ext_tau_limit[i];
+						ROB_CMD.tau_ext[i] = tau_ext_limit[i];
 					}
 
-					if (ROB_CMD.ext_tau[i] < -ext_tau_limit[i])
+					if (ROB_CMD.tau_ext[i] < -tau_ext_limit[i])
 					{
-						ROB_CMD.ext_tau[i] = -ext_tau_limit[i];
+						ROB_CMD.tau_ext[i] = -tau_ext_limit[i];
 					}
 				}
 
 				if (ROB_CMD.CTRL_MODE == 4) {
 
 					if (role == 0) {// yes damping for master
-						ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.ext_tau[i];
+						ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.tau_ext[i];
 					}
 					else if (role == 1) {// no damping for slave
-						ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + ROB_CMD.ext_tau[i];
+						ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + ROB_CMD.tau_ext[i];
 					}
 				}
 				else { // for all other control policies
-					ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.ext_tau[i];
+					ROB_CMD.tau_cmd[i] = dynamics->getTorque()[i] + (B[i] * qd[i]) + ROB_CMD.tau_ext[i];
 				}
 
 				base_command.mutable_actuators(i)->set_torque_joint(ROB_CMD.tau_cmd[i]);
@@ -379,8 +379,8 @@ public:
 			if (ROB_PARAMS.gripper_val)
 			{
 				gripper_position = base_feedback.interconnect().gripper_feedback().motor()[0].position();
-				std::cout << "Gripper command should be :" << ROB_CMD.des_gripperPOS << std::endl;
-				m_gripper_motor_command->set_position(ROB_CMD.des_gripperPOS);
+				std::cout << "Gripper command should be :" << ROB_CMD.d_G_CMD << std::endl;
+				m_gripper_motor_command->set_position(ROB_CMD.d_G_CMD);
 				m_gripper_motor_command->set_velocity(40.0);
 				m_gripper_motor_command->set_force(100.0);
 			}
@@ -615,7 +615,7 @@ public:
 	void LOG_IT() {
 		if (ROB_LOG.timer_count % 1 == 0 && ROB_LOG.data_count < ROB_PARAMS.DURATION * 1000 && ROB_LOG.logging == 1)
 		{
-			ROB_LOG.write2LOG(ROB_LOG.data_count, base_feedback, ROB_CMD.ext_tau, ROB_UDP.UDP_q, ROB_UDP.UDP_tau, ROB_CMD.tau_cmd);
+			ROB_LOG.write2LOG(ROB_LOG.data_count, base_feedback, ROB_CMD.tau_ext, ROB_UDP.UDP_q, ROB_UDP.UDP_tau, ROB_CMD.tau_cmd);
 			ROB_UDP.UDP_send_recv_v4(ROB_UDP.num_TOSEND);
 			++ROB_LOG.data_count;
 		}
@@ -646,7 +646,7 @@ public:
 		if (ROB_PARAMS.CTRL_MODE < 3) { // only for MATLAB real time control of the robot using impedance control
 			for (i = 0; i < ACTUATOR_COUNT; ++i)
 			{
-				ROB_CMD.des_q[i] = ROB_UDP.UDP_q[i];
+				ROB_CMD.q_des[i] = ROB_UDP.UDP_q[i];
 				ROB_CMD.tau_ctrl[i] = ROB_UDP.UDP_tau[i];
 			}
 		}
@@ -654,7 +654,7 @@ public:
 		if (ROB_PARAMS.CTRL_MODE == 3) { // only for gravity compensation
 			for (i = 0; i < ACTUATOR_COUNT; ++i)
 			{
-				ROB_CMD.des_q[i] = 0;
+				ROB_CMD.q_des[i] = 0;
 				ROB_CMD.tau_ctrl[i] = 0;
 			}
 		}
@@ -662,10 +662,10 @@ public:
 		if (ROB_PARAMS.CTRL_MODE == 5) { // real time control with gripper input from MATLAB v4
 			for (i = 0; i < ACTUATOR_COUNT; ++i)
 			{
-				ROB_CMD.des_q[i] = ROB_UDP.UDP_q[i];
+				ROB_CMD.q_des[i] = ROB_UDP.UDP_q[i];
 				ROB_CMD.tau_ctrl[i] = ROB_UDP.UDP_tau[i];
 			}
-			ROB_CMD.des_gripperPOS = ROB_UDP.UDP_gripper;
+			ROB_CMD.d_G_CMD = ROB_UDP.UDP_gripper;
 			std::cout << "ROB_UDP gripper value is : " << ROB_UDP.UDP_gripper << std::endl;
 		}
 
@@ -676,7 +676,7 @@ public:
 		//			ROB_CMD.tau_ctrl[i] = cmd_input[i]; // master expects a torque feedback from slave
 		//		}
 		//		else if (role == 1) {
-		//			ROB_CMD.des_q[i] = cmd_input[i]; // slave expects a position command from master
+		//			ROB_CMD.q_des[i] = cmd_input[i]; // slave expects a position command from master
 		//			ROB_CMD.tau_ctrl[i] = 0;
 		//		}
 		//	}
@@ -705,7 +705,7 @@ public:
 					LOG_IT();
 					
 					getFBK();
-					setCMD(ROB_CMD.des_q); // should discern between using MATLAB UDP input as command or teleoperation input as command
+					setCMD(ROB_CMD.q_des); // should discern between using MATLAB UDP input as command or teleoperation input as command
 					
 					sendCMD();
 				}
@@ -778,24 +778,24 @@ public:
 		myK = k_in;
 	}
 
-	myKINOVA(myPARAMS PARAMS_IN, float k_in, float b_in, float ext_tau_limit_in[7]) {
+	myKINOVA(myPARAMS PARAMS_IN, float k_in, float b_in, float tau_ext_limit_in[7]) {
 		ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
 		ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
 		myK = k_in;
 		myB = b_in;
 		for (int j = 0; j < 7; j++) {
-			ext_tau_limit_input[j] = ext_tau_limit_in[j];
+			tau_ext_limit_input[j] = tau_ext_limit_in[j];
 		}
 	}
 
-	//myKINOVA(myPARAMS PARAMS_IN, int role_in, float k_in, float ext_tau_limit_in[7]) {
+	//myKINOVA(myPARAMS PARAMS_IN, int role_in, float k_in, float tau_ext_limit_in[7]) {
 	//	ROB_CMD = set_ROB_CMD(PARAMS_IN.CTRL_MODE);
 	//	ROB_PARAMS = set_ROB_PARAMS(PARAMS_IN);
 	//	role = role_in;
 	//	myK = k_in;
 	//	for (int j = 0; j < 7; j++) {
-	//		ext_tau_limit_input[j] = ext_tau_limit_in[j];
+	//		tau_ext_limit_input[j] = tau_ext_limit_in[j];
 	//	}
-	//	//std::cout << ext_tau_limit_input[0] << std::endl;
+	//	//std::cout << tau_ext_limit_input[0] << std::endl;
 	//}
 };

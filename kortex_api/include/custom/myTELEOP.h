@@ -71,11 +71,11 @@ public:
 	void setTELEOP_CMD() {
 		for (i = 0; i < MASTER.ACTUATOR_COUNT; i++)
 		{
-			SLAVE.ROB_CMD.des_q[i] = MASTER.q[i];								// slave expects a position command from master
+			SLAVE.ROB_CMD.q_des[i] = MASTER.q[i];								// slave expects a position command from master
 			MASTER.ROB_CMD.tau_ctrl[i] = SLAVE.tau_fbk[i] + SLAVE.Gq[i];		// master expects a torque feedback from slave
 		}
-		//SLAVE.setCMD(SLAVE.ROB_CMD.des_q);
-		//MASTER.setCMD(MASTER.ROB_CMD.des_q);
+		//SLAVE.setCMD(SLAVE.ROB_CMD.q_des);
+		//MASTER.setCMD(MASTER.ROB_CMD.q_des);
 	}
 	void initiate_robots() {
 		MASTER.quickSETUP();
@@ -102,12 +102,12 @@ public:
 			
 			MASTER.q[i] = (MASTER.base_feedback.actuators(i).position() * rl::math::DEG2RAD);
 			MASTER.qd[i] = MASTER.base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
-			MASTER.ROB_CMD.des_q[i] = MASTER.q[i]; // initialising the des_q to the home configuration you start from - VERY IMPORTANT
+			MASTER.ROB_CMD.q_des[i] = MASTER.q[i]; // initialising the q_des to the home configuration you start from - VERY IMPORTANT
 			MASTER.ROB_CMD.tau_ctrl[i] = 0;
 
 			SLAVE.q[i] = (SLAVE.base_feedback.actuators(i).position() * rl::math::DEG2RAD);
 			SLAVE.qd[i] = SLAVE.base_feedback.actuators(i).velocity() * rl::math::DEG2RAD;
-			SLAVE.ROB_CMD.des_q[i] = SLAVE.q[i]; // initialising the des_q to the home configuration you start from - VERY IMPORTANT
+			SLAVE.ROB_CMD.q_des[i] = SLAVE.q[i]; // initialising the q_des to the home configuration you start from - VERY IMPORTANT
 			SLAVE.ROB_CMD.tau_ctrl[i] = 0;
 		}
 
