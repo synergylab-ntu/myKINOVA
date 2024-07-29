@@ -68,8 +68,7 @@ fin
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function. The purpose is to ensure no high torque is transmitted to the low-level controller of the robot. Note that this may have consequences in your application and will need to be adjusted to allow for high-torque or dynamical control behaviors.
 
 ### Mode 0 - Impedance control
-<img align="right" src="media/mode0_impedance.jpg" width="80">
-![Alt text]()
+<img align="right" src="media/mode0_impedance.jpg" height="240">
 
 ### Mode 1 - Impedance and torque control
 ![Alt text](media/mode1_impedance_and_torque.jpg)
