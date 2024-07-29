@@ -30,7 +30,7 @@ fin
 ## Control strategies for single arm
 
 ### Mode 0 - Impedance control
-![Alt text](media/mode0_impedance.JPG)
+![Alt text](media/mode0_impedance.jpg)
 
 ### Mode 1 - Impedance and torque control
 ![Alt text](media/mode1_impedance_and_torque.JPG)
