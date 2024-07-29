@@ -69,15 +69,15 @@ In all the strategies listed below, the external torque used to drive the robot 
 
 ### Mode 0 - Impedance control
 <img align="right" src="media/mode0_impedance.jpg" height="240">
-
+---
 ### Mode 1 - Impedance and torque control
 <img align="right" src="media/mode1_impedance_and_torque.jpg" height="240">
-
+---
 ### Mode 2 - Torque control
 <img align="right" src="media/mode2_torque.jpg" height="240">
-
+---
 ### Mode 3 - Gravity compensation
 <img align="right" src="media/mode3_gravity.jpg" height="240">
-
+---
 ### Mode 5 - Impedance, torque and gripper control
 <img align="right" src="media/mode5_impedance_and_torque_and_gripper.jpg" height="240">
