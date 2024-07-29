@@ -44,6 +44,9 @@ The UDP need not operate at a high frequency, the low-level torque controller of
 
 ## Mode 0 - Impedance control
 <img src="media/mode0_impedance.jpg" height="240">
+<!-- New line here... -->
+---
+sdhsfhsfh
 
 ## Mode 1 - Impedance and torque control
 <img src="media/mode1_impedance_and_torque.jpg" height="240">
