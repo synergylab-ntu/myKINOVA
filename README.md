@@ -28,6 +28,18 @@ cmake --build . --config Release --target INSTALL
 fin
 
 ## Control strategies for single arm
+
+<img src="media/tau_ext_limit.jpg#right"
+     alt="this is an optional description of the image to help the blind and show up in case the
+          image won't load"
+     style="display:block; /* override the default display setting of `inline-block` */
+            float:none; /* override any prior settings of `left` or `right` */
+            /* set both the left and right margins to `auto` to center the image */
+            margin-left:auto;
+            margin-right:auto;
+            width:60%; /* optionally resize the image to a screen percentage width if you want too */
+            ">
+            
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function shown by: <img src="media/tau_ext_limit.jpg#right" width="80">
 
 ### Mode 0 - Impedance control
