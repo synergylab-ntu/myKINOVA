@@ -43,4 +43,4 @@ The UDP need not operate at a high frequency, the low-level torque controller of
 | **$\tau$**$_{cmd}$  | Joint torque command |
 
 ## Mode 0 - Impedance control
-![Alt text](media/mode0_impedance.jpg#right)
+![Alt text](media/mode0_impedance.jpg#right width="80")
