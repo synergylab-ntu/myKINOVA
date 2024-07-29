@@ -59,7 +59,7 @@ The UDP need not operate at a high frequency, the low-level torque controller of
 ---
 
 ### Mode 3 - Gravity compensation
-<img align="right" src="media/mode3_gravity.jpg" height="240">
+<img align="right" src="media/mode3_gravity.jpg" height="100">
 <!-- New line here... -->
 ---
 
