@@ -36,6 +36,9 @@ In all the strategies listed below, the external torque used to drive the robot 
 <!-- New line here... -->
 ---
 Furthermore, the UDP need not operate at a high frequency, the low-level torque controller of the robot will still function. These control strategies allow to vary the following variables
+
+haghadkg
+**agabdgkjba**
 | Variable    | Name |
 | -------- | ------- |
 | **$q$**$_{des}$  | Desired joint configuration |
