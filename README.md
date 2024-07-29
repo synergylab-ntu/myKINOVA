@@ -73,7 +73,15 @@ fin
             margin-right:auto;
             width:60%; /* optionally resize the image to a screen percentage width if you want too */
             ">
-            
+
+
+sfjhdfgjfgjhshjdfgjdfgj
+sdgsdgsdgsd
+<img src="https://i.sstatic.net/RJj4x.png" class="leftAlign">
+sdfhdfhdfhsdfsdgsdg
+gjsdfgjdfgj
+
+
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function shown by: <img src="media/tau_ext_limit.jpg#right" width="80">
 
 ### Mode 0 - Impedance control
