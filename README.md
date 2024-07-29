@@ -29,9 +29,7 @@ fin
 
 ## Control strategies for single arm
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function shown by:
-<div style="float: right">
-    ![Replace this with your image](media/tau_ext_limit.jpg "Title")
-</div>
+![Alt text](media/tau_ext_limit.jpg#right)
 
 ### Mode 0 - Impedance control
 ![Alt text](media/mode0_impedance.jpg)
