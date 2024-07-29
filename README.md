@@ -7,12 +7,9 @@ Towards building contact rich manipulation frameworks with the Kinova gen3 ultra
 
 <!--- ![CMake_Windows_install_path](https://github.com/user-attachments/assets/17ca13a4-2346-4334-a130-e01ef98f3c4e)--->
 
-3. Install Boost [using these instructions](https://gist.github.com/zrsmithson/0b72e0cb58d0cb946fc48b5c88511da8). In case you run into an error while installing MinGW-w64 (as shown below), please follow the instructions [here](https://code.visualstudio.com/docs/cpp/config-mingw) under the 'Installing the MinGW-w64 toolchain' section.
+3. Install Boost [using these instructions](https://gist.github.com/zrsmithson/0b72e0cb58d0cb946fc48b5c88511da8). In case you run into an error while installing MinGW-w64, please follow the instructions [here](https://code.visualstudio.com/docs/cpp/config-mingw) under the 'Installing the MinGW-w64 toolchain' section.
 
-![mingw_error](https://github.com/user-attachments/assets/3c1fd076-8949-4221-9f27-014e19bc2b1e)
-
-Follow the instructions under the link marked in red in the image below. Once done, go back to the previous page and continue with steps 4-7.
-![MSYS2](https://github.com/user-attachments/assets/6cbfc480-5c2d-4259-8d2f-92f31871de8a)
+Follow the instructions under the MSYS link. Once done, go back to the previous page and continue with steps 4-7.
 
 6. Install [Qt OpenSource](https://master.qt.io/new_archive/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe)
 7. Install [Robotics Library](https://github.com/roboticslibrary/rl/releases/download/0.7.0/rl-0.7.0-msvc-14.1-x64.msi)
