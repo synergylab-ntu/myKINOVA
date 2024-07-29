@@ -30,16 +30,16 @@ fin
 ## Control strategies for single arm
 
 ### Mode 0 - Impedance control
-![Alt text](media/mode0_impedance.PNG)
+![Alt text](media/mode0_impedance.JPG)
 
 ### Mode 1 - Impedance and torque control
-![Alt text](media/mode1_impedance_and_torque.PNG)
+![Alt text](media/mode1_impedance_and_torque.JPG)
 
 ### Mode 2 - Torque control
-![Alt text](media/mode2_torque.PNG)
+![Alt text](media/mode2_torque.JPG)
 
 ### Mode 3 - Gravity compensation
-![Alt text](media/mode3_gravity.PNG)
+![Alt text](media/mode3_gravity.JPG)
 
 ### Mode 5 - Impedance, torque and gripper control
-![Alt text](media/mode5_impedance_and_torque_and_gripper.PNG)
+![Alt text](media/mode5_impedance_and_torque_and_gripper.JPG)
