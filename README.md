@@ -67,19 +67,34 @@ fin
 <img align="right" src="media/tau_ext_limit.jpg" width="80">
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function. The purpose is to ensure no high torque is transmitted to the low-level controller of the robot. Note that this may have consequences in your application and will need to be adjusted to allow for high-torque or dynamical control behaviors.
 
+Furthermore, the UDP need not operate at a high frequency, the low-level torque controller of the robot will still function. These control strategies allow to vary the following variables
+| Variable    | Name |
+| -------- | ------- |
+| $q_des$  | Desired joint configuration    |
+
 ### Mode 0 - Impedance control
 <img align="right" src="media/mode0_impedance.jpg" height="240">
+
 <!-- New line here... -->
 
 ---
 ### Mode 1 - Impedance and torque control
 <img align="right" src="media/mode1_impedance_and_torque.jpg" height="240">
-<!-- ... and new line here. -->
+<!-- New line here... -->
+
+---
 ### Mode 2 - Torque control
 <img align="right" src="media/mode2_torque.jpg" height="240">
-<!-- ... and new line here. -->
+<!-- New line here... -->
+
+---
 ### Mode 3 - Gravity compensation
 <img align="right" src="media/mode3_gravity.jpg" height="240">
-<!-- ... and new line here. -->
+<!-- New line here... -->
+
+---
 ### Mode 5 - Impedance, torque and gripper control
 <img align="right" src="media/mode5_impedance_and_torque_and_gripper.jpg" height="240">
+<!-- New line here... -->
+
+---
