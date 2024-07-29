@@ -67,6 +67,9 @@ fin
 <img align="right" src="media/tau_ext_limit.jpg" width="80">
 In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function. The purpose is to ensure no high torque is transmitted to the low-level controller of the robot. Note that this may have consequences in your application and will need to be adjusted to allow for high-torque or dynamical control behaviors.
 
+<!-- New line here... -->
+
+---
 Furthermore, the UDP need not operate at a high frequency, the low-level torque controller of the robot will still function. These control strategies allow to vary the following variables
 | Variable    | Name |
 | -------- | ------- |
