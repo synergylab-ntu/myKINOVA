@@ -69,7 +69,9 @@ In all the strategies listed below, the external torque used to drive the robot 
 
 ### Mode 0 - Impedance control
 <img align="right" src="media/mode0_impedance.jpg" height="240">
-<!-- ... and new line here. -->
+<!-- New line here... -->
+
+---
 ### Mode 1 - Impedance and torque control
 <img align="right" src="media/mode1_impedance_and_torque.jpg" height="240">
 <!-- ... and new line here. -->
