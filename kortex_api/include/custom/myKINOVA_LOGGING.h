@@ -402,7 +402,7 @@ public:
         //
         std::string timestamp = GetTimestamp(now_t);
         //
-        std::ofstream log_file(base_path + file_name + timestamp);
+        std::ofstream log_file(base_path + file_name + "_" + ROBOT_IP + "_" + timestamp);
 
         std::cout << "Writing to log now" << std::endl;
         if (log_file.is_open())
