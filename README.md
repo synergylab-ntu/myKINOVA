@@ -26,3 +26,36 @@ cmake --build . --config Release --target INSTALL
 3. Build -> Build all
 
 fin
+
+# Control strategies for single arm
+
+### Saturation function
+<img align="right" src="media/tau_ext_limit.jpg" width="80">
+In all the strategies listed below, the external torque used to drive the robot is limited by a saturation function. The purpose is to ensure no high torque is transmitted to the low-level controller of the robot. Note that this may have consequences in your application and will need to be adjusted to allow for high-torque or dynamical control behaviors.
+
+<!-- New line here... -->
+---
+The UDP need not operate at a high frequency, the low-level torque controller of the robot will still function. These control strategies allow to vary the following variables
+
+| Variable            |    Name |
+| -----------         | ------- |
+| **$q$**$_{des}$     | Desired joint configuration |
+| **$\tau$**$_{cmd}$  | Joint torque command |
+| **$\tau$**$_{ext}$  | External torque |
+
+## Mode 0 - Impedance control
+<img src="media/mode0_impedance.jpg" height="240">
+
+## Mode 1 - Impedance and torque control
+<img src="media/mode1_impedance_and_torque.jpg" height="240">
+
+## Mode 2 - Torque control
+<img src="media/mode2_torque.jpg" height="240">
+
+## Mode 3 - Gravity compensation
+<img src="media/mode3_gravity.jpg" height="240">
+
+Note: Kinematic calibration is needed to ensure no drift.
+
+## Mode 5 - Impedance, torque and gripper control
+<img src="media/mode5_impedance_and_torque_and_gripper.jpg" height="240">
